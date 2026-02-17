@@ -1,9 +1,9 @@
-import { readdir, readFile, writeFile, glob } from 'node:fs/promises'
-import { join, basename } from 'node:path'
+import { execSync } from 'node:child_process'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 import staticAdapter from '@sveltejs/adapter-static'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
-import { execSync } from 'node:child_process'
 
 /**
  * Custom adapter wrapper that extends @sveltejs/adapter-static
@@ -81,7 +81,10 @@ const adapterWithFontPreload = (options = {}) => {
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   compilerOptions: {
-    runes: false
+    runes: false,
+    experimental: {
+      async: true
+    }
   },
   onwarn: (warning, handler) => {
     if (warning.code.includes('a11y')) return
@@ -90,6 +93,10 @@ const config = {
   },
   preprocess: vitePreprocess({ }),
   kit: {
+    router: {
+      type: 'hash',
+      resolution: 'client'
+    },
     adapter: adapterWithFontPreload({
       fallback: 'index.html',
       fontNames: ['nunito-latin-wght'],
@@ -98,12 +105,9 @@ const config = {
     version: {
       name: execSync('git rev-parse HEAD').toString().trim()
     },
-    alias: {
-      'lucide-svelte/dist/Icon.svelte': './node_modules/lucide-svelte/dist/Icon.svelte'
-    },
     serviceWorker: {
       files: (filepath) => {
-        return !['video.mkv', 'NotoSansHK.woff2', 'NotoSansJP.woff2', 'NotoSansKR.woff2'].includes(filepath)
+        return true
       }
     }
   },

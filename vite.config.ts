@@ -30,7 +30,7 @@ export default defineConfig({
     }),
     devtoolsJson()
   ],
-  server: { port: 7344 },
+  server: { port: 7345 },
   build: {
     target: 'esnext',
     sourcemap: true

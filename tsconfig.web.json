@@ -46,8 +46,7 @@
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.json",
-    "src/**/*.svelte",
-    "src/patches/debug.ts"
+    "src/**/*.svelte"
   ],
   "exclude": [
     "../node_modules/**"
