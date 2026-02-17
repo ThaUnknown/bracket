@@ -81,7 +81,7 @@ const adapterWithFontPreload = (options = {}) => {
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   compilerOptions: {
-    runes: false,
+    runes: undefined,
     experimental: {
       async: true
     }

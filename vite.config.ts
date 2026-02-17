@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 
 import { sveltekit } from '@sveltejs/kit/vite'
+import tailwindcss from '@tailwindcss/vite'
 import license from 'rollup-plugin-license'
 import { defineConfig, type Plugin } from 'vite'
 import devtoolsJson from 'vite-plugin-devtools-json'
@@ -19,6 +20,7 @@ const viteServerConfig = () => ({
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     sveltekit(),
     viteServerConfig(),
     license({
