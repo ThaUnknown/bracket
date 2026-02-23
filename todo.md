@@ -1,0 +1,78 @@
+1. Functional:
+
+* \[ ] Rooms
+  * \[ ] Permissions
+  * \[ ] Managing roms
+    * \[ ] Joining rooms that you are invited to
+    * \[ ] Leaving rooms that you are in
+    * \[ ] Creating rooms
+    * \[ ] Deleting rooms that you created
+    * \[ ] Previewing rooms you're about to join
+    * \[ ] Viewing rooms from direct links
+  * \[ ] Managing members
+    * \[ ] Adding members to rooms that you created
+    * \[ ] Removing members from rooms that you created
+    * \[ ] Viewing members of rooms that you are in
+  * \[ ] Managing messages
+    * \[ ] Marking messages as read
+    * \[ ] Sending messages to rooms that you are in
+    * \[ ] Editing messages that you sent
+    * \[ ] Deleting messages that you sent
+    * \[ ] Viewing messages in rooms that you are in
+  * \[ ] Voice calls
+
+* \[ ] Account
+  * \[ ] Running app from account creation
+    * \[ ] Manage signing keys on account creation (probably some info for user as to what happens if you loose your keys)
+  * \[ ] Device/Session managment
+  * \[ ] Profile management
+    * \[ ] Changing display name
+    * \[ ] Changing avatar
+    * \[ ] Extra metadata from that one extension spec, such as description, status bubble and maaaaaaaybe background image (probably not, but maybe)
+
+* \[ ] Investigate if Server/Communities folders are possible
+
+* \[ ] Notifications
+  * \[ ] Managing
+  * \[ ] Push
+  * \[ ] Viewing
+
+* \[ ] Messages
+  * \[ ] Sending
+  * \[ ] Rendering
+    * \[ ] Formatting (Markdown)
+  * \[ ] Editing
+  * \[ ] Deleting
+  * \[ ] Reactions
+  * \[ ] Read receipts
+  * \[ ] Threading
+  * \[ ] Mentions
+  * \[ ] Attachments
+    * \[ ] Images
+    * \[ ] Files
+    * \[ ] Links
+      * \[ ] Link previews
+  * \[ ] Permissions \[can the user type or not]
+
+* \[ ] Service worker image cache and handling
+
+* \[ ] Consider running matrix client in service worker \[endgame feature]
+  * \[ ] Problems with calling, as service worker doesnt have WebRTC, which means calls somehow would need to be exposed in client without the rest of the client loading\\
+    * \[ ] The IDB crypto storage supports custom prefixes, so maybe 2 clients could be ran at once, one in the service worker with sync, and one in main thread without sync, just calls
+  * \[ ] Could potentially wake up the client with a push notification, which would sync in background
+  * \[ ] Proper background sync
+
+* \[ ] Hover preloads via sveltekit, needs proper handling in +layout.ts and +page.ts
+
+* \[ ] CSP/CORP
+
+2. UI:
+
+* \[ ] Yes.
+
+* \[ ] During first load have a pick for users, quick picks like: "I want discord style" or "I want element style" and manual picks like "I want to pick each component style manually"
+
+* \[ ] Component styles
+  * \[ ] Message style picking
+  * \[ ] User profile style picking
+  * \[ ] Sidebar style picking \[???]

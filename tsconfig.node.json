@@ -1,4 +1,8 @@
 {
+  // this is HORRIFICLY annoying, but if this package imports @types/node, it will pollute the global namespace with node types, in web
+  // but we only want node types in the build scripts etc, so we need to import the @types/node in some sub-dependency, and then extend that tsconfig in this file
+  // which gives us node types in the build scripts, but not in the web code
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "esnext",
@@ -39,9 +43,6 @@
     "vite.config.ts",
     "svelte.config.js",
     "tailwind.config.ts",
-    "generateALIntrospection.ts",
-    "src/types/**/*.d.ts",
-    "postcss.config.js",
     "tsconfig.web.json"
   ],
   "exclude": [

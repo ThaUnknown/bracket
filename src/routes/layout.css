@@ -154,3 +154,97 @@
     @apply bg-background text-foreground;
   }
 }
+
+html,
+body {
+  height: 100vh !important;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+  user-select: none;
+  font-family: 'Nunito Variable'
+}
+
+img,
+a {
+  -webkit-user-drag: none;
+}
+
+*:focus-visible {
+  outline: none;
+  border-image: fill 0 linear-gradient(#8885, #8885);
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+a[href],
+button,
+fieldset,
+input,
+optgroup,
+option,
+select,
+textarea,
+details,
+[tabindex],
+[contenteditable] {
+  &:active:not([disabled], [type='range'], .no-scale, [tabindex="-1"]) {
+    transition: all 0.1s ease-in-out;
+    transform: scale(0.98);
+  }
+}
+
+.scale-parent:has(.no-scale:active) {
+  transition: all 0.1s ease-in-out;
+  transform: scale(0.98);
+}
+
+.overflow-y-scroll,
+.overflow-y-auto,
+.overflow-x-scroll,
+.overflow-x-auto,
+.overflow-auto,
+.overflow-scroll {
+  will-change: scroll-position;
+}
+
+.sr-only {
+  display: none !important;
+}
+
+::view-transition-old(my-root),
+::view-transition-new(my-root) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-in-out;
+}
+
+::view-transition-old(my-root) {
+  animation-name: fade-out;
+}
+
+::view-transition-new(my-root) {
+  animation-name: fade-in;
+}
+
+@media (prefers-reduced-motion) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+@font-face {
+  font-family: "Twemoji";
+  src: url("/twemoji.woff2") format("woff2");
+}
+
+.font-twemoji {
+  font-family: 'Twemoji';
+}

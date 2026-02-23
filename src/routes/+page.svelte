@@ -1,5 +1,7 @@
 <script lang='ts'>
-  console.log('test')
-</script>
+  import { goto } from '$app/navigation'
 
-Hello world!
+  export let data
+
+  goto(!data.verified ? '/#/auth/verify/' : '/#/app/')
+</script>

@@ -21,7 +21,17 @@ export default tseslint.config(
           ignoreMixedLogicalExpressions: false,
           ignorePrimitives: true
         }
-      ]
+      ],
+      'import/extensions': ['error', 'always', {
+        ignorePackages: true,
+        checkTypeImports: true,
+        pathGroupOverrides: [
+          {
+            pattern: '$**/**',
+            action: 'ignore'
+          }
+        ]
+      }]
     }
   }
 )
