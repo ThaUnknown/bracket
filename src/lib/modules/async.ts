@@ -18,3 +18,8 @@ export function asyncify<C extends new (...args: any[]) => AsyncConstructable>(B
     }
   } as unknown as AsyncConstructor<InstanceType<C>>
 }
+
+// delay function execution by one microtask
+export async function lazy<T> (fn: () => T | Promise<T>): Promise<T> {
+  return await Promise.resolve().then(fn)
+}

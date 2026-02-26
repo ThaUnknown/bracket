@@ -1,15 +1,17 @@
-import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, RoomType } from 'matrix-js-sdk'
+import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType } from 'matrix-js-sdk'
 import { readable } from 'simple-store-svelte'
 import { derived } from 'svelte/store'
 
 import { asyncify, constructor } from '../async.ts'
 import { once, oncelazy } from '../store.ts'
 
-import { cacheConfig } from './discovery.ts'
-import { spaceChildren } from './room.ts'
+import { isSpace, isVideo, spaceChildren } from './room.ts'
 import { secretStorageKeys } from './secrets.ts'
 
 import type { ISyncStateData } from 'matrix-js-sdk/lib/sync'
+
+import { wellknown } from '$lib/state'
+import { MapWithDefault } from '$lib/utils'
 
 export interface RoomsByType {
   dms: Map<string, Room>
@@ -24,6 +26,8 @@ export interface GroupedRooms {
   serverToRoom: Map<string, Set<Room>>
   spaceToRoom: Map<string, Set<Room>>
 }
+
+// export type ClientInstance = Awaited<InstanceType<typeof MatrixChatClient>>
 
 // This contains things reliant on state, alongside with state handling
 
@@ -67,7 +71,7 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     })
 
     this.matrix.on(ClientEvent.ClientWellKnown, c => {
-      if (c['m.homeserver']?.base_url) cacheConfig(c)
+      if (c['m.homeserver']?.base_url) wellknown.set(c)
     })
 
     const getPollTimeout = () => ['cellular', 'unknown'].includes(navigator.connection?.type || '') ? 5_000 : 30_000
@@ -82,8 +86,11 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     await Promise.allSettled([
       this.store.startup(),
       this.matrix.initRustCrypto(),
-      this.matrix.getVersions(), // TODO: does this need to block client creation?
-      this.matrix.startClient({ lazyLoadMembers: true, threadSupport: true, clientWellKnownPollPeriod: 60 * 60 * 2, initialSyncLimit: 50, pollTimeout: getPollTimeout() }) // TODO: does this need to block client creation?
+      // TODO: does this need to block client creation?
+      this.matrix.getVersions(),
+      // TODO: does this need to block client creation?
+      // TODO: increase initial sync limit, once a custom IDB store is made, as the current one DOES NOT CACHE EVENTS
+      this.matrix.startClient({ lazyLoadMembers: true, threadSupport: true, clientWellKnownPollPeriod: 60 * 60 * 2, initialSyncLimit: 1, pollTimeout: getPollTimeout() })
     ])
     console.log('created')
   }
@@ -161,8 +168,9 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     if (this.matrix.isInitialSyncComplete()) {
       // dms, spaces, rooms
       for (const room of Object.values($rooms)) {
-        if ($dmsIDs.has(room.roomId)) dms.set(room.roomId, room)
-        else if (room.getType() === RoomType.Space) servers.set(room.roomId, room)
+        // TODO: dms needs to include headless spaces somehow...
+        if ($dmsIDs.has(room.roomId) || isVideo(room)) dms.set(room.roomId, room)
+        else if (isSpace(room)) servers.set(room.roomId, room)
         else channels.set(room.roomId, room)
       }
 
@@ -196,24 +204,18 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     // child ID to server Room
     const childToServer = new Map<string, Room>()
     // space ID to server Room
-    const serverToSpace = new Map<string, Set<Room>>()
+    const serverToSpace = new MapWithDefault<string, Set<Room>>(() => new Set())
     // room ID to server Room
-    const serverToRoom = new Map<string, Set<Room>>()
+    const serverToRoom = new MapWithDefault<string, Set<Room>>(() => new Set())
     // room ID to space Room
-    const spaceToRoom = new Map<string, Set<Room>>()
-
-    const get = (roomId: string, map: Map<string, Set<Room>>) => map.get(roomId) ?? (() => {
-      const s = new Set<Room>()
-      map.set(roomId, s)
-      return s
-    })()
+    const spaceToRoom = new MapWithDefault<string, Set<Room>>(() => new Set())
 
     // TODO: is spaceChildren recursive? or is it shallow? if it's shallow this code is wrong
     // TODO: if there is a way to easily determine the parent space/server of a room the complexity of this would plummet
 
     for (const space of spaces.values()) {
       for (const childId of spaceChildren(space)) {
-        if (channels.has(childId)) get(space.roomId, spaceToRoom).add(channels.get(childId)!)
+        if (channels.has(childId)) spaceToRoom.get(space.roomId).add(channels.get(childId)!)
       }
     }
 
@@ -221,9 +223,9 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       for (const childId of spaceChildren(server)) {
         childToServer.set(childId, server)
         if (channels.has(childId)) {
-          get(server.roomId, serverToRoom).add(channels.get(childId)!)
+          serverToRoom.get(server.roomId).add(channels.get(childId)!)
         } else if (spaces.has(childId)) {
-          get(server.roomId, serverToSpace).add(spaces.get(childId)!)
+          serverToSpace.get(server.roomId).add(spaces.get(childId)!)
         }
       }
     }
@@ -246,4 +248,33 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
 
     if (typeof room === 'object') return room[roomId]
   }
+
+  async event (room: Room, eventId: string) {
+    await this.matrix.getEventTimeline(room.getUnfilteredTimelineSet(), eventId)
+    const event = room.findEventById(eventId)
+    if (!event) return
+    await this.matrix.decryptEventIfNeeded(event)
+    return event
+  }
+
+  jump (room: Room, eventId: string) {
+    return this.matrix.getEventTimeline(room.getUnfilteredTimelineSet(), eventId)
+  }
+
+  // this wasn't a good idea
+  // https://matrix.to/#/!mUyEUun5Pr1cYeDwbz9A1byEPvRNy5Bzd1f-tp_jrKg/$_-YQaadhkie9flVBEoNQ5iR-cNNsGAwzAYNDZRxktcM?via=matrix.org&via=synzv.com&via=justin.directory
+  // async _makeRoomFilter (timeline: IRoomEventFilter) {
+  //   await this.restored
+  //   const filter = new Filter(this.matrix.getSafeUserId())
+  //   filter.setDefinition({
+  //     room: { timeline }
+  //   })
+
+  //   filter.filterId = await this.matrix.getOrCreateFilter('room-filter-' + this.matrix.credentials.userId, filter)
+  //   return filter
+  // }
+
+  // messageFilter = this._makeRoomFilter({
+  //   types: ['m.room.message', 'm.room.encrypted']
+  // })
 })

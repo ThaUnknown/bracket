@@ -2,6 +2,7 @@
 
 * \[ ] Rooms
   * \[ ] Permissions
+  * \[ ] Higher default room version
   * \[ ] Managing roms
     * \[ ] Joining rooms that you are invited to
     * \[ ] Leaving rooms that you are in
@@ -39,22 +40,29 @@
 
 * \[ ] Messages
   * \[ ] Sending
-  * \[ ] Rendering
-    * \[ ] Formatting (Markdown)
+  * \[x] Rendering
+    * \[x] Formatting (Markdown)
+    - \[ ] Auto-link detection
   * \[ ] Editing
+    * \[ ] Show that message was edited and its edit history
   * \[ ] Deleting
   * \[ ] Reactions
   * \[ ] Read receipts
   * \[ ] Threading
   * \[ ] Mentions
+  - \[ ] Unread messages
+  - \[ ] Jump to/load to unread
+  - \[ ] Live location messages
   * \[ ] Attachments
-    * \[ ] Images
-    * \[ ] Files
+    * \[x] Images
+    * \[x] Files
     * \[ ] Links
       * \[ ] Link previews
   * \[ ] Permissions \[can the user type or not]
 
-* \[ ] Service worker image cache and handling
+* \[ ] Ensure single tab mode
+
+* \[x] Service worker image cache and handling
 
 * \[ ] Consider running matrix client in service worker \[endgame feature]
   * \[ ] Problems with calling, as service worker doesnt have WebRTC, which means calls somehow would need to be exposed in client without the rest of the client loading\\

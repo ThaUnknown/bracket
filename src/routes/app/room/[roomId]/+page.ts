@@ -7,8 +7,11 @@ export async function load ({ parent, params }) {
 
   if (!room) return error(404, 'Room not found')
 
-  // TODO is this good flow?
-  await room.decryptCriticalEvents()
+  const eventCount = room.getLiveTimeline().getEvents().length
+
+  if (eventCount < 50) {
+    client.matrix.scrollback(room, 50 - eventCount)
+  }
 
   return { room }
 }

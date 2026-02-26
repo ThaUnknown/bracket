@@ -1,4 +1,8 @@
+/* eslint-disable @typescript-eslint/method-signature-style */
 // See https://svelte.dev/docs/kit/types#app.d.ts
+
+import type { CompositionEventHandler } from 'svelte/elements'
+
 // for information about these interfaces
 declare global {
   namespace App {
@@ -94,9 +98,37 @@ declare global {
     public detect(source: ImageBitmapSource): Promise<DetectedBarcode[]>
   }
 
+  interface SanitizerConfig {
+    allowElements?: string[]
+    blockElements?: string[]
+    dropElements?: string[]
+    allowAttributes?: Record<string, string[]>
+    dropAttributes?: Record<string, string[]>
+    allowCustomElements?: boolean
+    allowComments?: boolean
+  }
+
+  class Sanitizer {
+    constructor(opts?: SanitizerConfig)
+    allowElement(name: string): boolean
+    get(): SanitizerConfig
+    removeElement(name: string): void
+    removeUnsafe()
+    allowAttribute(name: string, elementName: string): boolean
+    removeAttribute(name: string, elementName: string): void
+    setComments(allow: boolean): void
+    setDataAttributes(allow: boolean): void
+  }
+
   // Also add the class to the window so we can do feature detection
   interface Window {
     BarcodeDetector: BarcodeDetector
+    Sanitizer: Sanitizer
+  }
+
+  interface Element {
+    setHTML(html: string, options?: { sanitizer?: Sanitizer }): void
+    setHTMLUnsafe(html: string | TrustedHTML, options?: { sanitizer?: Sanitizer }): void
   }
 
   declare interface Navigator extends NavigatorNetworkInformation {}
@@ -144,6 +176,28 @@ declare global {
     // http://wicg.github.io/netinfo/#handling-changes-to-the-underlying-connection
     onchange?: EventListener
 }
+
+  // Base64 helpers from the Uint8Array proposal.
+  interface Uint8Array {
+    toBase64(options?: {
+      alphabet?: 'base64' | 'base64url'
+      omitPadding?: boolean
+    }): string
+  }
+
+  interface Uint8ArrayConstructor {
+    fromBase64(base64: string, options?: {
+      alphabet?: 'base64' | 'base64url'
+      lastChunkHandling?: 'loose' | 'strict' | 'stop-before-partial'
+    }): Uint8Array<ArrayBuffer>
+  }
+
+    declare namespace svelteHTML {
+    interface HTMLAttributes<T> {
+      'on:navigate'?: CompositionEventHandler<T>
+      credentialless?: boolean
+    }
+  }
 }
 
 export {}

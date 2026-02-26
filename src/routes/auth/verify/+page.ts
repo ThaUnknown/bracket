@@ -23,7 +23,7 @@ export async function load ({ parent }) {
   // do we have any other verified devices which are E2EE which we can verify against?
   const crypto = matrix.getCrypto()!
   for (const device of await all(matrix)) {
-    const verificationStatus = await crypto.getDeviceVerificationStatus(matrix.getUserId() as string, device.deviceId)
+    const verificationStatus = await crypto.getDeviceVerificationStatus(matrix.getSafeUserId(), device.deviceId)
     if (verificationStatus?.signedByOwner) return { keyId, keyInfo, hasDevicesToVerifyAgainst: true }
   }
 

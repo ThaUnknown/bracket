@@ -53,7 +53,9 @@
 </script>
 
 {#if phase === VerificationPhase.Requested}
-  Requested
+  <!-- TODO: only on incoming/outgoing? WIP. -->
+  <Button on:click={() => verification.accept()}>Accept</Button>
+  <Button on:click={() => verification.cancel()}>Cancel</Button>
 {:else if phase === VerificationPhase.Ready}
   Ready
   {#if 'BarcodeDetector' in globalThis}
