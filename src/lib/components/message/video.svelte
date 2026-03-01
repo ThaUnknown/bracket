@@ -17,4 +17,4 @@
 {Math.round(size / 1024)}KB
 {Math.round(duration / 1000)}s
 {name}
-<video {src} controls {poster} class='h-full' preload='none' />
+<video {src} controls {poster} class='h-full min-h-0 object-contain bg-transparent' preload='none' />

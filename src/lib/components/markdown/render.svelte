@@ -1,6 +1,12 @@
 <script lang='ts'>
-  import { marked } from 'marked'
+  import { marked, type TokenizerAndRendererExtension } from 'marked'
+  import markedShiki from 'marked-shiki'
+  import { codeToHtml } from 'shiki'
+
+  import { colorScheme } from '$lib/utils'
   export let markdown = ''
+
+  import './md.css'
 
   const ALLOWED_TAGS = ['a', 'b', 'blockquote', 'br', 'center', 'del', 'div', 'em', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'hr', 'i', 'img', 'li', 'ol', 'p', 'pre', 'code', 'span', 'strike', 'strong', 'ul', 'details', 'summary']
   const ALLOWED_ATTR = ['align', 'height', 'href', 'src', 'target', 'width', 'rel']
@@ -16,13 +22,13 @@
   })
   if (sanitizer) sanitizer.removeUnsafe()
 
-  function render (el: HTMLDivElement, markdown: string) {
-    const update = async (markdown: string) => {
+  function render (el: HTMLDivElement, markdown: Promise<string>) {
+    const update = async (markdown: Promise<string>) => {
       if (!sanitizer) {
         const { default: dompurify } = await import('dompurify')
-        el.setHTMLUnsafe(dompurify.sanitize(markdown, { ALLOWED_TAGS, ALLOWED_ATTR }))
+        el.setHTMLUnsafe(dompurify.sanitize(await markdown, { ALLOWED_TAGS, ALLOWED_ATTR }))
       } else {
-        el.setHTML(markdown, { sanitizer })
+        el.setHTML(await markdown, { sanitizer })
       }
     }
 
@@ -30,6 +36,29 @@
 
     return { update }
   }
+  const shiki = markedShiki({
+    async highlight (code, lang) {
+      return await codeToHtml(code, { lang, theme: $colorScheme === 'dark' ? 'github-dark' : 'github-light' })
+    }
+  })
+
+  const mention: TokenizerAndRendererExtension = {
+    name: 'mention',
+    level: 'inline', // Is this a block-level or inline-level tokenizer?
+    start: (src) => src.indexOf('@'),
+    tokenizer (src: string) {
+      const match = /@([^\s]+)/.exec(src)
+      if (match) {
+        return {
+          type: 'mention',
+          raw: match[0]
+        }
+      }
+    },
+    renderer (token) {
+      return `<span class="markdown-mention">${token.raw}</span>`
+    }
+  }
 </script>
 
-<div use:render={marked.parse(markdown, { async: false })} class='contents' />
+<div use:render={marked.use(shiki).use({ extensions: [mention] }).parse(markdown, { async: true })} class='contents' />

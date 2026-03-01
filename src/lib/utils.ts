@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
+import { readable } from 'simple-store-svelte'
 import { twMerge } from 'tailwind-merge'
 
 export function cn (...inputs: ClassValue[]) {
@@ -27,3 +28,11 @@ export class MapWithDefault<K, V> extends Map<K, V> {
     })()
   }
 }
+
+const colorSchemeMatch = (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)')) as MediaQueryList
+
+export const colorScheme = readable(colorSchemeMatch.matches ? 'dark' : 'light', set => {
+  const listener = (e: MediaQueryListEvent) => set(e.matches ? 'dark' : 'light')
+  colorSchemeMatch.addEventListener('change', listener)
+  return () => colorSchemeMatch.removeEventListener('change', listener)
+})

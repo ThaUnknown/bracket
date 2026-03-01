@@ -92,9 +92,7 @@ export function typing (client: MatrixClient) {
 
     client.on(RoomMemberEvent.Typing, update)
 
-    return () => {
-      client.off(RoomMemberEvent.Typing, update)
-    }
+    return () => client.off(RoomMemberEvent.Typing, update)
   })
 }
 

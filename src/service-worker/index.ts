@@ -9,7 +9,7 @@ import { CacheFirst, NetworkOnly } from 'workbox-strategies'
 
 import type { EncryptedFile } from 'matrix-js-sdk/lib/types'
 
-import { createDecryptionStream, parseRangeHeader } from '$lib/modules/matrix/attachment'
+import { createDecryptionStream, parseRangeHeader } from '$lib/modules/matrix/attachment/crypto'
 import { build, files, prerendered, version } from '$service-worker'
 
 //
@@ -46,7 +46,7 @@ const cacheName = 'matrix-media-cache'
 let session = get<{ accessToken: string, origin: string } | undefined>(cacheName)
 
 addEventListener('message', async ({ data }) => {
-  if (data.origin && data.origin) session = data
+  if (data.origin && data.accessToken) session = data
   if (data?.type === 'LOGOUT') {
     // TODO: handle logout on client!
     caches.delete(cacheName)
@@ -62,9 +62,9 @@ const makeHeaders = (req: Request, auth?: string) => {
   return newHeaders
 }
 
-// cache only images, but handle decryption for all media, authorized or not.
+// don't cache video, but handle decryption for all media, authorized or not.
 registerRoute(
-  ({ url, request }) => PATHNAMES.some(path => url.pathname.startsWith(path)),
+  ({ url }) => PATHNAMES.some(path => url.pathname.startsWith(path)),
   new CacheFirst({
     cacheName,
     plugins: [
@@ -102,7 +102,7 @@ registerRoute(
           return new Request(url, { headers })
         },
         async cacheWillUpdate ({ response, state }) {
-          return state?.destination === 'image' ? response : null
+          return state?.destination !== 'video' ? response : null
         },
         async fetchDidSucceed ({ response, state }) {
           // no encryption so can be returned as is

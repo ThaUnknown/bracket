@@ -11,7 +11,9 @@
 </script>
 
 {#if isMarkdown}
-  <Markdown markdown={body} />
+  <div class='h-full overflow-auto'>
+    <Markdown markdown={body} />
+  </div>
 {:else}
   {body}
 {/if}

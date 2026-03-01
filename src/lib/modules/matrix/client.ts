@@ -1,14 +1,17 @@
-import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType } from 'matrix-js-sdk'
+import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, UserEvent, RoomStateEvent } from 'matrix-js-sdk'
+import { removeElement } from 'matrix-js-sdk/lib/utils'
 import { readable } from 'simple-store-svelte'
 import { derived } from 'svelte/store'
 
 import { asyncify, constructor } from '../async.ts'
 import { once, oncelazy } from '../store.ts'
 
+import { encryptAttachment, encryptAttachmentStream } from './attachment/crypto.ts'
 import { isSpace, isVideo, spaceChildren } from './room.ts'
 import { secretStorageKeys } from './secrets.ts'
 
 import type { ISyncStateData } from 'matrix-js-sdk/lib/sync'
+import type { EncryptedFile, FileContent } from 'matrix-js-sdk/lib/types'
 
 import { wellknown } from '$lib/state'
 import { MapWithDefault } from '$lib/utils'
@@ -49,6 +52,17 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       store: this.store,
       deviceId: session.device_id,
       timelineSupport: true,
+      fetchFn: (url, init) => {
+        if (init?.body instanceof ReadableStream) {
+          // @ts-expect-error all good typescript, this feature is ONLY 4 years old!
+          init.duplex = 'half'
+        }
+        if (typeof url !== 'string' && 'body' in url && url.body instanceof ReadableStream) {
+          // @ts-expect-error all good typescript, this feature is ONLY 4 years old!
+          url.duplex = 'half'
+        }
+        return fetch(url, init)
+      },
       cryptoCallbacks: {
         getSecretStorageKey: async ({ keys }) => {
           const defaultKeyId = await this.matrix.secretStorage.getDefaultKeyId()
@@ -240,6 +254,22 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     }
   })
 
+  // TODO: this might not update when members are lazy loaded? that needs to be verified for stuff like read receipts and reactions
+  users = readable<Record<string, User>>({}, set => {
+    // @ts-expect-error private field access
+    const update = () => set(this.store.users)
+    this.matrix.on(RoomStateEvent.Members, update)
+    this.matrix.on(RoomStateEvent.NewMember, update)
+    // this.matrix.on(RoomStateEvent.Update, update)
+
+    update()
+
+    return () => {
+      this.matrix.off(RoomStateEvent.Members, update)
+      this.matrix.off(RoomStateEvent.NewMember, update)
+    }
+  })
+
   async room (roomId: string) {
     const room = await Promise.race([
       once(this.rooms, r => r[roomId] !== undefined),
@@ -259,6 +289,58 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
 
   jump (room: Room, eventId: string) {
     return this.matrix.getEventTimeline(room.getUnfilteredTimelineSet(), eventId)
+  }
+
+  async uploadFile (file: File, info: Promise<EncryptedFile> | EncryptedFile, body: BodyInit, abortController: AbortController) {
+    const upload: Upload = {
+      loaded: 0,
+      total: 0,
+      abortController,
+      promise: this.matrix.http.authedRequest<UploadResponse>(Method.Post, '/upload', { filename: file.name }, body, {
+        prefix: MediaPrefix.V3,
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        abortSignal: abortController.signal
+      })
+    }
+    // @ts-expect-error private field access
+    this.matrix.http.uploads.push(upload)
+    try {
+      const { content_uri: mxc } = await upload.promise
+
+      const encryptInfo = await info
+      encryptInfo.url = mxc
+
+      return {
+        msgtype: MsgType.File,
+        body: file.name,
+        url: mxc,
+        file: encryptInfo
+      } satisfies FileContent
+    } finally {
+      // @ts-expect-error private field access
+      removeElement(this.matrix.http.uploads, (elem) => elem === upload)
+    }
+  }
+
+  async createFile (file: File, ctrl: AbortController) {
+    try {
+      try {
+        // so what if we didn't use a gazzillion megabytes of memory?
+        // every matrix client ever: "how about no!"
+        const { stream, info } = encryptAttachmentStream(file.stream())
+        return await this.uploadFile(file, info, stream, ctrl)
+      } catch (error) {
+        // but the server will stop you too!
+        if (!(error instanceof MatrixError) || error.error !== 'Request must specify a Content-Length') throw error
+        const { data, info } = await encryptAttachment(await file.arrayBuffer())
+        return await this.uploadFile(file, info, data, ctrl)
+      }
+    } catch (error) {
+      ctrl.abort(error)
+      throw error
+    }
   }
 
   // this wasn't a good idea
