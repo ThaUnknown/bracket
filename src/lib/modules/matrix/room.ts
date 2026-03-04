@@ -1,4 +1,4 @@
-import { type MatrixClient, type MatrixEvent, RoomEvent, type Room, RoomType, EventType, RoomStateEvent, RoomMemberEvent, type RoomMember, type ReceiptCache } from 'matrix-js-sdk'
+import { type MatrixClient, type MatrixEvent, RoomEvent, type Room, RoomType, EventType, RoomStateEvent, RoomMemberEvent, type RoomMember, type ReceiptCache, RelationType, MsgType, type EventTimelineSet } from 'matrix-js-sdk'
 import { derived, readable } from 'svelte/store'
 
 import type { TypedMatrixEvent } from './event.ts'
@@ -58,9 +58,23 @@ export function live (room: Room, timelineset = room.getUnfilteredTimelineSet())
   })
 }
 
-export function messages (room: Room, timelineset = room.getUnfilteredTimelineSet()) {
-  return derived(live(room, timelineset), $live => {
-    return $live.filter((e): e is TypedMatrixEvent<'m.room.message' | 'm.sticker'> => e.getType() === 'm.room.message' || e.getType() === 'm.sticker')
+export function messages (liveevents: ReturnType<typeof live>) {
+  return derived(liveevents, $live => {
+    // return $live.filter((e): e is TypedMatrixEvent<'m.room.message' | 'm.sticker'> => {
+    //   const type = e.getType()
+    //   return (type === 'm.room.message' || type === 'm.sticker') && e.getContent()['m.relates_to']?.rel_type !== 'm.replace'
+    // })
+    // filter message and sticker events, and aggregate other events as "children of the latest message"
+    const messages: Array<[TypedMatrixEvent<'m.room.message' | 'm.sticker'>, string[]]> = []
+    for (const e of $live) {
+      const type = e.getType()
+      if ((type === 'm.room.message' || type === 'm.sticker') && e.getContent()['m.relates_to']?.rel_type !== 'm.replace') {
+        messages.push([e as TypedMatrixEvent<'m.room.message' | 'm.sticker'>, []])
+      } else if (messages.length) {
+        messages.at(-1)![1].push(e.getId()!)
+      }
+    }
+    return messages
   })
 }
 
@@ -132,4 +146,35 @@ export function spaceChildren (room: Room) {
 
     return arr
   }, [])
+}
+
+export function reactions (liveevents: ReturnType<typeof live>, eventId: string | undefined, set: EventTimelineSet) {
+  return derived(liveevents, () => {
+    return (set.relations.getChildEventsForEvent(eventId!, RelationType.Annotation, EventType.Reaction)?.getRelations() ?? []) as Array<TypedMatrixEvent<EventType.Reaction>>
+  })
+}
+export function canEditEvent (event: TypedMatrixEvent<EventType.RoomMessage>, userId?: string) {
+  const content = event.getContent()
+  const relationType = content['m.relates_to']?.rel_type
+  const msgtype = [MsgType.Text, MsgType.Emote, MsgType.Notice].includes(content.msgtype)
+  return (
+    (!relationType || relationType === 'm.thread') &&
+    event.getSender() === userId &&
+    msgtype
+  )
+}
+
+export function getLatestEditableEvt (messages: Array<TypedMatrixEvent<EventType.RoomMessage>>) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const evt = messages[i]!
+    if (canEditEvent(evt)) return evt
+  }
+}
+
+export function encryption (room: Room) {
+  return readable(room.hasEncryptionStateEvent(), set => {
+    const update = () => set(room.hasEncryptionStateEvent())
+    room.addListener(RoomStateEvent.Update, update)
+    return () => room.removeListener(RoomStateEvent.Update, update)
+  })
 }

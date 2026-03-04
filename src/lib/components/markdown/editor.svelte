@@ -65,7 +65,7 @@
   export let value = ''
   export { className as class }
 
-  const htmlContentRegex = /^<div>(?:&nbsp;)*([\s\S]*)<\/div>$/
+  const htmlContentRegex = /^<div>(?:&nbsp;)*([\s\S]*)<\/div>(?:&nbsp;)*$/
 
   export let placeholder = ''
   export let editor: OverTypeInstance | undefined = undefined
@@ -75,6 +75,10 @@
     const isMarkdown = html !== value
     const mentions = [...html.matchAll(/<span class="markdown-mention">(@[^\s]+)<\/span>/g)].map(m => m[1]!)
     return { markdown: value, html, isMarkdown, mentions }
+  }
+
+  export function setValue (val?: string) {
+    editor?.setValue(val ?? '')
   }
 
   function markdown (el: HTMLDivElement) {

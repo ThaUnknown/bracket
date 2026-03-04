@@ -14,6 +14,10 @@
 
   const crypto = matrix.getCrypto()!
 
+  const ver = data.client!.currentverified
+
+  $: if ($ver) goto('/#/')
+
   let verification = crypto.getVerificationRequestsToDeviceInProgress(matrix.getUserId() as string)[0]
 
   matrix.on(CryptoEvent.VerificationRequestReceived, request => {
@@ -30,6 +34,8 @@
     try {
       const defaultKeyId = (await matrix.secretStorage.getDefaultKeyId())!
       const keyBackupKey = decodeRecoveryKey(recoveryKey)
+      // const match = await matrix.secretStorage.checkKey(keyBackupKey, {})
+      // if (!match) throw new Error('Invalid recovery key.')
       secretStorageKeys.set(defaultKeyId, keyBackupKey)
 
       const backupInfo = await crypto.getKeyBackupInfo()
@@ -61,8 +67,6 @@
       if (!(await crypto.getCrossSigningKeyId())) {
         throw new Error('Cross signing keys were not properly set up.')
       }
-
-      await goto('/#/')
     // done!
     } catch (e) {
       console.error(e)

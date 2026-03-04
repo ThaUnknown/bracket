@@ -20,8 +20,11 @@ export async function load ({ parent }) {
     [keyId, keyInfo] = keyIDs[0]!
   }
 
-  // do we have any other verified devices which are E2EE which we can verify against?
   const crypto = matrix.getCrypto()!
+  // this is kinda hacky, but I couldn't find a better way to await the initial OLM sync
+  await crypto.userHasCrossSigningKeys(matrix.getSafeUserId(), true)
+
+  // do we have any other verified devices which are E2EE which we can verify against?
   for (const device of await all(matrix)) {
     const verificationStatus = await crypto.getDeviceVerificationStatus(matrix.getSafeUserId(), device.deviceId)
     if (verificationStatus?.signedByOwner) return { keyId, keyInfo, hasDevicesToVerifyAgainst: true }

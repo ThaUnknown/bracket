@@ -2,10 +2,10 @@ import { get } from 'idb-keyval'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { clientsClaim, skipWaiting } from 'workbox-core'
 import { ExpirationPlugin } from 'workbox-expiration'
-import { cleanupOutdatedCaches, matchPrecache, precacheAndRoute, PrecacheFallbackPlugin } from 'workbox-precaching'
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { RangeRequestsPlugin } from 'workbox-range-requests'
-import { registerRoute, Route } from 'workbox-routing'
-import { CacheFirst, NetworkOnly } from 'workbox-strategies'
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst } from 'workbox-strategies'
 
 import type { EncryptedFile } from 'matrix-js-sdk/lib/types'
 
@@ -16,25 +16,25 @@ import { build, files, prerendered, version } from '$service-worker'
 // Offline mode handling
 //
 
-const FALLBACK_URL = '/offline.html'
+const directoryIndex = '/offline.html'
 
-precacheAndRoute([...prerendered, ...build, ...files].map(url => ({ url, revision: version })))
+precacheAndRoute([...prerendered, ...build, ...files].map(url => ({ url, revision: version })), { directoryIndex })
 cleanupOutdatedCaches()
 clientsClaim()
 skipWaiting()
 
-registerRoute(new Route(({ request }) => request.mode === 'navigate',
-  new NetworkOnly({
-    plugins: [new PrecacheFallbackPlugin({ fallbackURL: FALLBACK_URL }),
-      {
-        async fetchDidSucceed ({ response }) {
-          if (response.ok) return response
+// registerRoute(new Route(({ request }) => request.mode === 'navigate',
+//   new NetworkOnly({
+//     plugins: [new PrecacheFallbackPlugin({ fallbackURL: FALLBACK_URL }),
+//       {
+//         async fetchDidSucceed ({ response }) {
+//           if (response.ok) return response
 
-          return await matchPrecache(FALLBACK_URL) ?? response
-        }
-      }]
-  })
-))
+//           return await matchPrecache(FALLBACK_URL) ?? response
+//         }
+//       }]
+//   })
+// ))
 
 self.__WB_DISABLE_DEV_LOGS = true
 //
@@ -46,7 +46,7 @@ const cacheName = 'matrix-media-cache'
 let session = get<{ accessToken: string, origin: string } | undefined>(cacheName)
 
 addEventListener('message', async ({ data }) => {
-  if (data.origin && data.accessToken) session = data
+  if (data?.origin && data.accessToken) session = data
   if (data?.type === 'LOGOUT') {
     // TODO: handle logout on client!
     caches.delete(cacheName)

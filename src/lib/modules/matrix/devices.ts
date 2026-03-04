@@ -3,7 +3,7 @@ import type { MatrixClient } from 'matrix-js-sdk'
 export async function all (client: MatrixClient) {
   const userID = client.getSafeUserId()
 
-  return [...(await client.getCrypto()!.getUserDeviceInfo([userID])).get(userID)?.values() ?? []].filter(d => {
+  return [...(await client.getCrypto()!.getUserDeviceInfo([userID], true)).get(userID)?.values() ?? []].filter(d => {
     return !d.dehydrated && !!d.getIdentityKey()
   })
 }

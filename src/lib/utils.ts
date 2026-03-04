@@ -36,3 +36,14 @@ export const colorScheme = readable(colorSchemeMatch.matches ? 'dark' : 'light',
   colorSchemeMatch.addEventListener('change', listener)
   return () => colorSchemeMatch.removeEventListener('change', listener)
 })
+
+export const debounce = <T extends (...args: any[]) => unknown>(
+  callback: T,
+  waitFor: number
+) => {
+  let timeout: ReturnType<typeof setTimeout>
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => callback(...args), waitFor)
+  }
+}

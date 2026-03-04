@@ -9,24 +9,43 @@
   import Text from './text.svelte'
   import Video from './video.svelte'
 
+  import type { ClientInstance } from '$lib/modules/matrix/client'
   import type { TypedMatrixEvent } from '$lib/modules/matrix/event'
+  import type { Readable } from 'svelte/store'
 
+  import { Button } from '$lib/components/ui/button'
   import { User } from '$lib/components/user'
 
   export let event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>
   export let users: Record<string, MatrixUser>
   export let receipts: CachedReceipt[] = []
+  export let children: string[] = []
+  export let reactions: Readable<Array<TypedMatrixEvent<'m.reaction'>>>
+  export let client: ClientInstance
 
   function isMessage (event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>): event is TypedMatrixEvent<'m.room.message'> {
     return event.getType() === 'm.room.message'
   }
 
+  function joy () {
+    return client.react(event.getRoomId()!, event.getId()!, '😊')
+  }
+
+  function del () {
+    return client.delete(event.getRoomId()!, event.getId()!)
+  }
+
   $: user = users[event.getSender() || '']
+
+  // @ts-expect-error private field
+  $: isEdited = !!event._replacingEvent
+
+  $: groupedReactions = Map.groupBy($reactions, r => r.getContent()['m.relates_to'].key)
 </script>
 
 <div class='p-1 max-h-60 ring ring-inset ring-black/10 dark:ring-white/15 flex flex-col'>
   {#if user}
-    <User {user} />:
+    <User {user} />: {isEdited ? '(edited)' : ''}
   {/if}
   {#if isMessage(event)}
     {@const content = event.getContent()}
@@ -65,5 +84,23 @@
         <span class='text-red-500'>{receipt.userId}: {receipt.type}</span>
       {/if}
     {/each}
+  </div>
+  <div>
+    {groupedReactions.size} Reactions:
+    {#each groupedReactions.entries() as [emoji, events] (emoji)}
+      {#each events as event (event.getId())}
+        {emoji}:
+        {@const user = users[event.getSender() || '']}
+        {#if user}
+          <User {user} />
+        {:else}
+          <span class='text-red-500'>{event.getSender()}</span>
+        {/if}
+      {/each}
+    {/each}
+  </div>
+  <div>
+    <Button on:click={joy}>Joy</Button>
+    <Button on:click={del}>Delete</Button>
   </div>
 </div>

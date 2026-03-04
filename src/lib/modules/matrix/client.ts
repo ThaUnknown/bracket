@@ -1,4 +1,5 @@
-import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, UserEvent, RoomStateEvent } from 'matrix-js-sdk'
+import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, RoomStateEvent, RelationType } from 'matrix-js-sdk'
+import { CryptoEvent } from 'matrix-js-sdk/lib/crypto-api'
 import { removeElement } from 'matrix-js-sdk/lib/utils'
 import { readable } from 'simple-store-svelte'
 import { derived } from 'svelte/store'
@@ -7,11 +8,12 @@ import { asyncify, constructor } from '../async.ts'
 import { once, oncelazy } from '../store.ts'
 
 import { encryptAttachment, encryptAttachmentStream } from './attachment/crypto.ts'
+import { currentverified } from './devices.ts'
 import { isSpace, isVideo, spaceChildren } from './room.ts'
 import { secretStorageKeys } from './secrets.ts'
 
 import type { ISyncStateData } from 'matrix-js-sdk/lib/sync'
-import type { EncryptedFile, FileContent } from 'matrix-js-sdk/lib/types'
+import type { EncryptedFile, FileContent, RoomMessageEventContent } from 'matrix-js-sdk/lib/types'
 
 import { wellknown } from '$lib/state'
 import { MapWithDefault } from '$lib/utils'
@@ -30,7 +32,7 @@ export interface GroupedRooms {
   spaceToRoom: Map<string, Set<Room>>
 }
 
-// export type ClientInstance = Awaited<InstanceType<typeof MatrixChatClient>>
+export type ClientInstance = Awaited<InstanceType<typeof MatrixChatClient>>
 
 // This contains things reliant on state, alongside with state handling
 
@@ -97,15 +99,11 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       }, this.ctrl)
     }
 
-    await Promise.allSettled([
-      this.store.startup(),
-      this.matrix.initRustCrypto(),
-      // TODO: does this need to block client creation?
-      this.matrix.getVersions(),
-      // TODO: does this need to block client creation?
-      // TODO: increase initial sync limit, once a custom IDB store is made, as the current one DOES NOT CACHE EVENTS
-      this.matrix.startClient({ lazyLoadMembers: true, threadSupport: true, clientWellKnownPollPeriod: 60 * 60 * 2, initialSyncLimit: 1, pollTimeout: getPollTimeout() })
-    ])
+    await this.matrix.initRustCrypto()
+    await this.store.startup()
+    // TODO: does this need to block client creation?
+    // TODO: increase initial sync limit, once a custom IDB store is made, as the current one DOES NOT CACHE EVENTS
+    await this.matrix.startClient({ lazyLoadMembers: true, threadSupport: true, clientWellKnownPollPeriod: 60 * 60 * 2, initialSyncLimit: 1, pollTimeout: getPollTimeout() })
     console.log('created')
   }
 
@@ -129,12 +127,14 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       if (!isync || isync.catchingUp || isync.fromCache) return
       set(state)
     }
+
     this.matrix.on(ClientEvent.Sync, update)
     return () => this.matrix.off(ClientEvent.Sync, update)
   })
 
   localstate = readable<SyncState>(SyncState.Reconnecting, set => {
     const update = (state: SyncState) => set(state)
+
     this.matrix.on(ClientEvent.Sync, update)
     return () => this.matrix.off(ClientEvent.Sync, update)
   })
@@ -143,16 +143,23 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
 
   restored = oncelazy(this.localstate, s => s === SyncState.Prepared || s === SyncState.Syncing)
 
+  currentverified = readable(false, set => {
+    const update = () => currentverified(this.matrix).then(set)
+    update()
+
+    this.matrix.on(CryptoEvent.DevicesUpdated, update)
+    return () => this.matrix.off(CryptoEvent.DevicesUpdated, update)
+  })
+
   // ROOMS
 
   rooms = readable<Record<string, Room>>({}, set => {
     // @ts-expect-error private field access
     const update = () => set(this.store.rooms)
-    this.matrix.on(ClientEvent.Room, update)
-    this.matrix.on(ClientEvent.DeleteRoom, update)
-
     update()
 
+    this.matrix.on(ClientEvent.Room, update)
+    this.matrix.on(ClientEvent.DeleteRoom, update)
     return () => {
       this.matrix.off(ClientEvent.Room, update)
       this.matrix.off(ClientEvent.DeleteRoom, update)
@@ -167,8 +174,8 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       set(new Set<string>(content.flat()))
     }
     update()
-    this.matrix.on(ClientEvent.AccountData, update)
 
+    this.matrix.on(ClientEvent.AccountData, update)
     return () => this.matrix.off(ClientEvent.AccountData, update)
   })
 
@@ -258,12 +265,11 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
   users = readable<Record<string, User>>({}, set => {
     // @ts-expect-error private field access
     const update = () => set(this.store.users)
-    this.matrix.on(RoomStateEvent.Members, update)
-    this.matrix.on(RoomStateEvent.NewMember, update)
-    // this.matrix.on(RoomStateEvent.Update, update)
-
     update()
 
+    // this.matrix.on(RoomStateEvent.Update, update)
+    this.matrix.on(RoomStateEvent.Members, update)
+    this.matrix.on(RoomStateEvent.NewMember, update)
     return () => {
       this.matrix.off(RoomStateEvent.Members, update)
       this.matrix.off(RoomStateEvent.NewMember, update)
@@ -341,6 +347,28 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       ctrl.abort(error)
       throw error
     }
+  }
+
+  // state safe sendMessage wrapper
+  async message (roomId: string, content: RoomMessageEventContent, txnId?: string) {
+    await this.prepared
+    return await this.matrix.sendMessage(roomId, content, txnId)
+  }
+
+  async delete (roomId: string, eventId: string) {
+    await this.prepared
+    return await this.matrix.redactEvent(roomId, eventId)
+  }
+
+  async react (roomId: string, eventId: string, key: string) {
+    await this.prepared
+    return await this.matrix.sendEvent(roomId, EventType.Reaction, {
+      'm.relates_to': {
+        rel_type: RelationType.Annotation,
+        event_id: eventId,
+        key
+      }
+    })
   }
 
   // this wasn't a good idea

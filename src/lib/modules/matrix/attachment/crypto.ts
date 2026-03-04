@@ -50,7 +50,7 @@ export function encryptAttachmentStream (rawStream: ReadableStream<Uint8Array>) 
             hasher.update(cipherChunk)
             // Advance the counter by the number of AES blocks we just consumed.
             // Each block is 16 bytes; the counter occupies the low 8 bytes (bytes 8–15).
-            counterView.setBigUint64(0, counterView.getBigUint64(0, false) + BigInt(plainChunk.byteLength / 16), false)
+            counterView.setBigUint64(0, counterView.getBigUint64(0, false) + BigInt(Math.floor(plainChunk.byteLength / 16)), false)
           }
 
           if (done) break

@@ -44,14 +44,14 @@
   * \[x] Rendering
     * \[x] Formatting (Markdown)
     - \[ ] Auto-link detection
-  * \[ ] Editing
-    * \[ ] Show that message was edited and its edit history
-  * \[ ] Deleting
-  * \[ ] Reactions
+  * \[x] Editing
+    * \[x] Show that message was edited ~~and its edit history~~
+  * \[x] Deleting
+  * \[x] Reactions
   * \[ ] Read receipts
   * \[ ] Threading
   * \[x] Mentions
-  - \[ ] Typing indicator
+  - \[x] Typing indicator
   - \[ ] Replies/Quotes
   - \[ ] Unread messages
   - \[ ] Jump to/load to unread
@@ -61,7 +61,7 @@
     * \[x] Files
     * \[ ] Links
       * \[ ] Link previews
-  * \[ ] Permissions \[can the user type or not]
+  * \[ ] Permissions \[can the user type, delete, edit or not]
 
 * \[ ] Ensure single tab mode
 
