@@ -14,12 +14,6 @@
     * \[ ] Adding members to rooms that you created
     * \[ ] Removing members from rooms that you created
     * \[ ] Viewing members of rooms that you are in
-  * \[ ] Managing messages
-    * \[ ] Marking messages as read
-    * \[ ] Sending messages to rooms that you are in
-    * \[ ] Editing messages that you sent
-    * \[ ] Deleting messages that you sent
-    * \[ ] Viewing messages in rooms that you are in
   * \[ ] Voice calls
 
 * \[ ] Account
@@ -43,7 +37,7 @@
     * \[x] Mentions
   * \[x] Rendering
     * \[x] Formatting (Markdown)
-    - \[ ] Auto-link detection
+    * \[ ] Auto-link detection
   * \[x] Editing
     * \[x] Show that message was edited ~~and its edit history~~
   * \[x] Deleting
@@ -51,11 +45,11 @@
   * \[ ] Read receipts
   * \[ ] Threading
   * \[x] Mentions
-  - \[x] Typing indicator
-  - \[ ] Replies/Quotes
-  - \[ ] Unread messages
-  - \[ ] Jump to/load to unread
-  - \[ ] Live location messages
+  * \[x] Typing indicator
+  * \[x] Replies/Quotes
+  * \[ ] Unread messages
+  * \[ ] Jump to/load to unread
+  * \[ ] Live location messages
   * \[ ] Attachments
     * \[x] Images
     * \[x] Files

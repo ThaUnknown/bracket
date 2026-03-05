@@ -65,6 +65,13 @@
         event_id: editEvent.getId()!
       }
       editEvent = undefined
+    } else if (replyEvent) {
+      event['m.relates_to'] = {
+        'm.in_reply_to': {
+          event_id: replyEvent.getId()!
+        }
+      }
+      replyEvent = undefined
     }
     setValue()
     await data.client.matrix.sendMessage(room.roomId, event)
@@ -90,10 +97,17 @@
 
   let value = ''
   let editEvent: TypedMatrixEvent<'m.room.message' | 'm.sticker'> | undefined
+  let replyEvent: TypedMatrixEvent<'m.room.message' | 'm.sticker'> | undefined
 
   function edit (event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>) {
     editEvent = event
+    replyEvent = undefined
     setValue(event.getContent().body)
+  }
+
+  function reply (event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>) {
+    replyEvent = event
+    editEvent = undefined
   }
 
   const debouncedTyping = debounce((_: unknown) => data.client.matrix.sendTyping(room.roomId, !!value, 2000), 1500)
@@ -110,8 +124,11 @@
   <div class='h-full overflow-y-auto flex flex-col'>
     <Button on:click={scrollback}>Load More</Button>
     {#each $msgs as [event, children] (event.getId())}
-      <Message {event} {children} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} />
-      <Button on:click={() => edit(event)}>Edit</Button>
+      <Message {event} {children} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} />
+      <div>
+        <Button on:click={() => edit(event)}>Edit</Button>
+        <Button on:click={() => reply(event)}>Reply</Button>
+      </div>
     {/each}
   </div>
   <div>
@@ -128,6 +145,8 @@
   <div>
     {#if editEvent}
       Editing
+    {:else if replyEvent}
+      Replying
     {/if}
   </div>
   <Editor class='h-52' bind:getContent bind:setValue bind:value />

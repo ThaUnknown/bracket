@@ -1,5 +1,6 @@
 <script lang='ts'>
-  import { MsgType, type CachedReceipt, type User as MatrixUser } from 'matrix-js-sdk'
+  import { MsgType, type Room, type CachedReceipt, type User as MatrixUser } from 'matrix-js-sdk'
+  import { readable, type Readable } from 'svelte/store'
 
   import Audio from './audio.svelte'
   import File from './file.svelte'
@@ -11,12 +12,12 @@
 
   import type { ClientInstance } from '$lib/modules/matrix/client'
   import type { TypedMatrixEvent } from '$lib/modules/matrix/event'
-  import type { Readable } from 'svelte/store'
 
   import { Button } from '$lib/components/ui/button'
   import { User } from '$lib/components/user'
 
   export let event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>
+  export let room: Room
   export let users: Record<string, MatrixUser>
   export let receipts: CachedReceipt[] = []
   export let children: string[] = []
@@ -41,11 +42,23 @@
   $: isEdited = !!event._replacingEvent
 
   $: groupedReactions = Map.groupBy($reactions, r => r.getContent()['m.relates_to'].key)
+
+  $: reply = event.getContent()['m.relates_to']?.['m.in_reply_to']?.event_id
 </script>
 
 <div class='p-1 max-h-60 ring ring-inset ring-black/10 dark:ring-white/15 flex flex-col'>
   {#if user}
     <User {user} />: {isEdited ? '(edited)' : ''}
+  {/if}
+  {#if reply}
+    {#await client.event(room, reply)}
+      Loading reply
+    {:then replyEvent}
+      {#if replyEvent}
+        In reply to {replyEvent.getSender()}: {replyEvent.getContent().body}
+      {/if}
+      <!-- <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} /> -->
+    {/await}
   {/if}
   {#if isMessage(event)}
     {@const content = event.getContent()}
