@@ -65,14 +65,20 @@
   export let value = ''
   export { className as class }
 
-  const htmlContentRegex = /^<div>(?:&nbsp;)*([\s\S]*)<\/div>(?:&nbsp;)*$/
-
   export let placeholder = ''
   export let editor: OverTypeInstance | undefined = undefined
 
   export function getContent (): EditorContent {
-    const html = (editor?.getCleanHTML() ?? '').match(htmlContentRegex)?.[1]?.trim() ?? ''
-    const isMarkdown = html !== value
+    const regex = /(<span class="code-fence"[^>]*>[\s\S]*?<\/span>)/g
+    const rendered = editor?.getRenderedHTML() ?? ''
+    let html = rendered.replace(regex, '')
+    html = html.replace(/<span class="syntax-marker[^"]*">.*?<\/span>/g, '')
+    // Remove OverType-specific classes
+    html = html.replace(/\sclass="(bullet-list|ordered-list|code-fence|hr-marker|blockquote|url-part)"/g, '')
+    // Clean up empty class attributes
+    html = html.replace(/\sclass=""/g, '')
+    const content = html.match(/^<div>(?:&nbsp;)*([\s\S]*)<\/div>(?:&nbsp;)*$/)?.[1]?.trim() ?? ''
+    const isMarkdown = content !== value
     const mentions = [...html.matchAll(/<span class="markdown-mention">(@[^\s]+)<\/span>/g)].map(m => m[1]!)
     return { markdown: value, html, isMarkdown, mentions }
   }

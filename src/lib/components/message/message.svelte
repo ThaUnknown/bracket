@@ -20,7 +20,6 @@
   export let room: Room
   export let users: Record<string, MatrixUser>
   export let receipts: CachedReceipt[] = []
-  export let children: string[] = []
   export let reactions: Readable<Array<TypedMatrixEvent<'m.reaction'>>>
   export let client: ClientInstance
 
@@ -57,7 +56,7 @@
       {#if replyEvent}
         In reply to {replyEvent.getSender()}: {replyEvent.getContent().body}
       {/if}
-      <!-- <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} /> -->
+      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} />
     {/await}
   {/if}
   {#if isMessage(event)}

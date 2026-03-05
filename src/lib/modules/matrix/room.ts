@@ -1,4 +1,4 @@
-import { type MatrixClient, type MatrixEvent, RoomEvent, type Room, RoomType, EventType, RoomStateEvent, RoomMemberEvent, type RoomMember, type ReceiptCache, RelationType, MsgType, type EventTimelineSet } from 'matrix-js-sdk'
+import { type MatrixClient, type MatrixEvent, RoomEvent, type Room, RoomType, EventType, RoomStateEvent, RoomMemberEvent, type RoomMember, type ReceiptCache, RelationType, MsgType, type EventTimelineSet, type TimelineWindow, Direction } from 'matrix-js-sdk'
 import { derived, readable } from 'svelte/store'
 
 import type { TypedMatrixEvent } from './event.ts'
@@ -23,42 +23,46 @@ import { MapWithDefault } from '$lib/utils'
 //   })
 // }
 
-export function live (room: Room, timelineset = room.getUnfilteredTimelineSet()) {
-  let live = timelineset.getLiveTimeline()
+// export function live (room: Room, timelineset = room.getUnfilteredTimelineSet()) {
+//   let live = timelineset.getLiveTimeline()
+//   return readable(live, set => {
+//     const update = () => {
+//       const fresh = timelineset.getLiveTimeline()
+//       if (fresh === live) return
+//       live = fresh
+//       set(live)
+//     }
+//     update()
 
-  return readable(live.getEvents(), set => {
+//     room.on(RoomEvent.TimelineRefresh, update)
+
+//     return () => room.off(RoomEvent.TimelineRefresh, update)
+//   })
+// }
+
+export function events (room: Room, window: TimelineWindow) {
+  return readable(window.getEvents(), set => {
     const update = async (event?: MatrixEvent) => {
-      // TODO is this good flow?
       if (event) await room.client.decryptEventIfNeeded(event)
-      // TODO decryptAllEvents is SLOW as hell
       else await room.decryptAllEvents()
-      set(live.getEvents())
-    }
-    const refresh = () => {
-      const fresh = timelineset.getLiveTimeline()
-      if (fresh !== live) {
-        live = fresh
-        update()
-      }
+      await window.paginate(Direction.Forward, 1, false)
+      set(window.getEvents())
     }
 
+    set([])
     update()
 
     room.on(RoomEvent.Redaction, update)
-    room.on(RoomEvent.TimelineRefresh, refresh)
-    timelineset.on(RoomEvent.Timeline, update)
-    timelineset.on(RoomEvent.TimelineReset, refresh)
+    room.on(RoomEvent.Timeline, update)
 
     return () => {
       room.off(RoomEvent.Redaction, update)
-      room.off(RoomEvent.TimelineRefresh, refresh)
-      timelineset.off(RoomEvent.Timeline, update)
-      timelineset.off(RoomEvent.TimelineReset, refresh)
+      room.off(RoomEvent.Timeline, update)
     }
   })
 }
 
-export function messages (liveevents: ReturnType<typeof live>) {
+export function messages (liveevents: ReturnType<typeof events>) {
   return derived(liveevents, $live => {
     // return $live.filter((e): e is TypedMatrixEvent<'m.room.message' | 'm.sticker'> => {
     //   const type = e.getType()
@@ -148,7 +152,7 @@ export function spaceChildren (room: Room) {
   }, [])
 }
 
-export function reactions (liveevents: ReturnType<typeof live>, eventId: string | undefined, set: EventTimelineSet) {
+export function reactions (liveevents: ReturnType<typeof events>, eventId: string | undefined, set: EventTimelineSet) {
   return derived(liveevents, () => {
     return (set.relations.getChildEventsForEvent(eventId!, RelationType.Annotation, EventType.Reaction)?.getRelations() ?? []) as Array<TypedMatrixEvent<EventType.Reaction>>
   })

@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit'
+import { TimelineWindow } from 'matrix-js-sdk'
 
 const NUM_PRELOAD_MESSAGES = 30
 
@@ -9,11 +10,8 @@ export async function load ({ parent, params }) {
 
   if (!room) return error(404, 'Room not found')
 
-  const eventCount = room.getLiveTimeline().getEvents().length
+  const window = new TimelineWindow(client.matrix, room.getUnfilteredTimelineSet())
+  window.load(undefined, NUM_PRELOAD_MESSAGES)
 
-  if (eventCount < NUM_PRELOAD_MESSAGES) {
-    client.matrix.scrollback(room, NUM_PRELOAD_MESSAGES - eventCount)
-  }
-
-  return { room }
+  return { room, window }
 }

@@ -158,7 +158,8 @@ export function createDecryptionStream (
   let cryptoKey: CryptoKey
 
   const counter = Uint8Array.fromBase64(info.iv)
-  const counterView = new DataView(counter.buffer, 8, 8)
+  const counterView = new DataView(counter.buffer, counter.byteOffset, AES_BLOCK_SIZE)
+  const baseLow = counterView.getBigUint64(8)
 
   let hasher = hash && sha256.create()
 
@@ -209,7 +210,7 @@ export function createDecryptionStream (
         const completeBlocks = Math.floor(buffer.length / AES_BLOCK_SIZE) * AES_BLOCK_SIZE
         if (!completeBlocks) return
 
-        counterView.setBigUint64(0, BigInt(Math.floor((byteOffset + decryptedSoFar) / AES_BLOCK_SIZE)))
+        counterView.setBigUint64(8, BigInt.asUintN(64, baseLow + BigInt(Math.floor(byteOffset + decryptedSoFar / AES_BLOCK_SIZE))))
 
         const data = buffer.subarray(0, completeBlocks)
         if (hasher) hasher.update(data)
@@ -240,7 +241,7 @@ export function createDecryptionStream (
         if (hasher) hasher.update(padded.subarray(0, buffer.length))
         validateHash()
 
-        counterView.setBigUint64(0, BigInt(Math.floor((byteOffset + decryptedSoFar) / AES_BLOCK_SIZE)))
+        counterView.setBigUint64(8, BigInt.asUintN(64, baseLow + BigInt(Math.floor(byteOffset + decryptedSoFar / AES_BLOCK_SIZE))))
 
         enqueueOutput(controller, new Uint8Array(await crypto.subtle.decrypt({ name, length, counter }, cryptoKey, padded)).subarray(0, buffer.length))
       } catch (error) {

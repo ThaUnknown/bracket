@@ -286,11 +286,10 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
   }
 
   async event (room: Room, eventId: string) {
-    await this.matrix.getEventTimeline(room.getUnfilteredTimelineSet(), eventId)
     const event = room.findEventById(eventId)
-    if (!event) return
-    await this.matrix.decryptEventIfNeeded(event)
-    return event
+    if (event) return event
+    await this.matrix.getEventTimeline(room.getUnfilteredTimelineSet(), eventId)
+    return room.findEventById(eventId)
   }
 
   jump (room: Room, eventId: string) {

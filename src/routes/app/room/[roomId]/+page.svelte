@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import { LocationAssetType, type MatrixEvent, type IContent, type User as MatrixUser, type ReceiptCache } from 'matrix-js-sdk'
+  import { LocationAssetType, type MatrixEvent, type IContent, type User as MatrixUser, type ReceiptCache, Direction } from 'matrix-js-sdk'
   import { makeHtmlMessage, makeTextMessage, makeLocationContent } from 'matrix-js-sdk/lib/content-helpers'
 
   import type { EditorContent } from '$lib/components/markdown/editor.svelte'
@@ -11,7 +11,7 @@
   import Button from '$lib/components/ui/button/button.svelte'
   import { User } from '$lib/components/user'
   import { createMediaMetadata } from '$lib/modules/matrix/attachment/metadata'
-  import { live, messages, reactions, reads, typing } from '$lib/modules/matrix/room'
+  import { events, messages, reactions, reads, typing } from '$lib/modules/matrix/room'
   import { debounce } from '$lib/utils'
 
   export let data
@@ -20,7 +20,7 @@
 
   // $: pins = pinned(room)
 
-  $: liveevents = live(room)
+  $: liveevents = events(room, data.window)
 
   $: msgs = messages(liveevents)
 
@@ -34,7 +34,7 @@
   $: room.loadMembersIfNeeded()
 
   function scrollback () {
-    return data.client.matrix.scrollback(room, 20)
+    return data.window.paginate(Direction.Backward, 30)
   }
 
   let getContent: () => EditorContent
@@ -122,9 +122,8 @@
 
 <div class='h-full flex flex-col'>
   <div class='h-full overflow-y-auto flex flex-col'>
-    <Button on:click={scrollback}>Load More</Button>
     {#each $msgs as [event, children] (event.getId())}
-      <Message {event} {children} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} />
+      <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} />
       <div>
         <Button on:click={() => edit(event)}>Edit</Button>
         <Button on:click={() => reply(event)}>Reply</Button>
@@ -151,6 +150,7 @@
   </div>
   <Editor class='h-52' bind:getContent bind:setValue bind:value />
   <div class='flex'>
+    <Button on:click={scrollback}>Load More</Button>
     <Button on:click={message}>Send</Button>
     <Button variant='outline' on:click={file}>Attach</Button>
     <Button variant='outline' on:click={location}>Location</Button>

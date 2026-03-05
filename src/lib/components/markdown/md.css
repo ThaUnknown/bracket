@@ -2,3 +2,7 @@
   color: var(--color-yellow-600);
   font-weight: 500;
 }
+
+.overtype-wrapper .overtype-preview pre.code-block code {
+  line-height: 1 !important;
+}
