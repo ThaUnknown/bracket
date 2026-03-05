@@ -60,7 +60,7 @@
 * \[ ] Ensure single tab mode
 
 * \[x] Service worker image cache and handling
-  * \[ ] If its a full 200 request hash the file, abort hash if stream is aborted
+  * \[x] If its a full 200 request hash the file, abort hash if stream is aborted
 
 * \[ ] Consider running matrix client in service worker \[endgame feature]
   * \[ ] Problems with calling, as service worker doesnt have WebRTC, which means calls somehow would need to be exposed in client without the rest of the client loading\\

@@ -1,7 +1,7 @@
 <script lang='ts'>
   import type { ImageContent } from 'matrix-js-sdk/lib/types'
 
-  import { mxcToHttp } from '$lib/modules/matrix/event'
+  import { mxcToHttp } from '$lib/modules/matrix/attachment/url'
 
   export let content: ImageContent & { info?: { ['xyz.amorgan.blurhash']?: string } }
 

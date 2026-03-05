@@ -125,7 +125,8 @@ registerRoute(
               encryptedParam,
               range.blockStart,
               range.originalStart - range.blockStart,
-              range.originalEnd ? range.originalEnd - range.originalStart + 1 : undefined
+              range.originalEnd ? range.originalEnd - range.originalStart + 1 : undefined,
+              false
             )
           } else {
             decrypt = createDecryptionStream(encryptedParam, 0)

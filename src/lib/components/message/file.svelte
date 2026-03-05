@@ -1,7 +1,7 @@
 <script lang='ts'>
   import type { FileContent } from 'matrix-js-sdk/lib/types'
 
-  import { mxcToHttp } from '$lib/modules/matrix/event'
+  import { mxcToHttp } from '$lib/modules/matrix/attachment/url'
 
   export let content: FileContent
 

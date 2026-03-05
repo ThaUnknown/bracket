@@ -147,7 +147,8 @@ export function createDecryptionStream (
   info: EncryptedFile,
   byteOffset = 0,
   trimStart = 0,
-  maxBytes?: number
+  maxBytes?: number,
+  hash = true
 ) {
   const length = !info.v ? 128 : 64
 
@@ -158,6 +159,8 @@ export function createDecryptionStream (
 
   const counter = Uint8Array.fromBase64(info.iv)
   const counterView = new DataView(counter.buffer, 8, 8)
+
+  let hasher = hash && sha256.create()
 
   const enqueueOutput = (controller: TransformStreamDefaultController<Uint8Array<ArrayBuffer>>, decrypted: Uint8Array<ArrayBuffer>) => {
     const byteLength = decrypted.byteLength
@@ -178,9 +181,22 @@ export function createDecryptionStream (
     return outputSoFar + byteLength
   }
 
+  const validateHash = () => {
+    if (!hasher) return
+
+    const digest = hasher.digest().toBase64({ omitPadding: true })
+    if (digest !== info.hashes.sha256) throw new Error(`Hash mismatch for encrypted attachment. Expected ${info.hashes.sha256}, got ${digest}`)
+    hasher = false
+  }
+
   return new TransformStream({
-    async start () {
-      cryptoKey = await crypto.subtle.importKey('jwk', info.key, { name }, false, ['decrypt'])
+    async start (controller) {
+      try {
+        cryptoKey = await crypto.subtle.importKey('jwk', info.key, { name }, false, ['decrypt'])
+        if (hash && !info.hashes.sha256) throw new Error('Missing hash for encrypted attachment.')
+      } catch (error) {
+        controller.error(error)
+      }
     },
 
     async transform (chunk: Uint8Array<ArrayBuffer>, controller) {
@@ -195,12 +211,15 @@ export function createDecryptionStream (
 
         counterView.setBigUint64(0, BigInt(Math.floor((byteOffset + decryptedSoFar) / AES_BLOCK_SIZE)))
 
-        const decrypted = new Uint8Array(await crypto.subtle.decrypt({ name, length, counter }, cryptoKey, buffer.subarray(0, completeBlocks)))
+        const data = buffer.subarray(0, completeBlocks)
+        if (hasher) hasher.update(data)
+        const decrypted = new Uint8Array(await crypto.subtle.decrypt({ name, length, counter }, cryptoKey, data))
 
         decryptedSoFar += decrypted.byteLength
         outputSoFar = enqueueOutput(controller, decrypted)
 
         if (maxBytes && (outputSoFar - trimStart) >= maxBytes) {
+          validateHash()
           controller.terminate()
           return
         }
@@ -217,6 +236,9 @@ export function createDecryptionStream (
 
         const padded = new Uint8Array(AES_BLOCK_SIZE)
         padded.set(buffer)
+
+        if (hasher) hasher.update(padded.subarray(0, buffer.length))
+        validateHash()
 
         counterView.setBigUint64(0, BigInt(Math.floor((byteOffset + decryptedSoFar) / AES_BLOCK_SIZE)))
 
