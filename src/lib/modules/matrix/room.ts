@@ -182,3 +182,26 @@ export function encryption (room: Room) {
     return () => room.removeListener(RoomStateEvent.Update, update)
   })
 }
+
+export function buildSpaceTree (spaces: Map<string, Room>) {
+  const children = new Map<string, string[]>()
+  const hasParent = new Set<string>()
+
+  for (const room of spaces.values()) {
+    const roomChildren = spaceChildren(room)
+    children.set(room.roomId, roomChildren)
+
+    for (const child of roomChildren) {
+      hasParent.add(child)
+    }
+  }
+
+  const roots = new Set<string>()
+  for (const [roomId] of children) {
+    if (!hasParent.has(roomId)) {
+      roots.add(roomId)
+    }
+  }
+
+  return { roots, children }
+}

@@ -9,7 +9,7 @@ import { once, oncelazy } from '../store.ts'
 
 import { encryptAttachment, encryptAttachmentStream } from './attachment/crypto.ts'
 import { currentverified } from './devices.ts'
-import { isSpace, isVideo, spaceChildren } from './room.ts'
+import { buildSpaceTree, isSpace, isVideo } from './room.ts'
 import { secretStorageKeys } from './secrets.ts'
 
 import type { ISyncStateData } from 'matrix-js-sdk/lib/sync'
@@ -23,6 +23,7 @@ export interface RoomsByType {
   spaces: Map<string, Room>
   channels: Map<string, Room>
   servers: Map<string, Room>
+  children: Map<string, string[]>
 }
 
 export interface GroupedRooms {
@@ -184,42 +185,40 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     const servers = new Map<string, Room>()
     const channels = new Map<string, Room>()
     const spaces = new Map<string, Room>()
+    let children = new Map<string, string[]>()
 
     // if local data is still being loaded, don't even try to categorize rooms as it causes all sorts of errors
-    if (this.matrix.isInitialSyncComplete()) {
+    if (this.matrix.isInitialSyncComplete() || $localSyncState === SyncState.Syncing || $localSyncState === SyncState.Prepared) {
       // dms, spaces, rooms
       for (const room of Object.values($rooms)) {
-        // TODO: dms needs to include headless spaces somehow...
         if ($dmsIDs.has(room.roomId) || isVideo(room)) dms.set(room.roomId, room)
         else if (isSpace(room)) servers.set(room.roomId, room)
         else channels.set(room.roomId, room)
       }
 
-      // TODO: is spaceChildren recursive? or is it shallow? if it's shallow this code is wrong
+      const tree = buildSpaceTree(servers)
+      children = tree.children
 
-      // actually create servers and spaces list.
-      for (const server of servers.values()) {
-        for (const childId of spaceChildren(server)) {
-          // verify that is root server
-          if (!servers.has(childId)) continue
-          spaces.set(childId, servers.get(childId)!)
-          servers.delete(childId)
-        }
+      for (const space of servers.values()) {
+        if (tree.roots.has(space.roomId)) continue
+        spaces.set(space.roomId, space)
+        servers.delete(space.roomId)
       }
     }
 
-    set({ dms, spaces, channels, servers })
+    set({ dms, spaces, channels, servers, children })
 
     return () => {
       dms.clear()
       servers.clear()
       channels.clear()
       spaces.clear()
+      children.clear()
     }
   })
 
   groupedrooms = derived<typeof this.roomtypes, GroupedRooms>(this.roomtypes, ($roomtypes, set) => {
-    const { spaces, channels, servers } = $roomtypes
+    const { spaces, channels, servers, children } = $roomtypes
 
     // server -> space/room -> room
     // child ID to server Room
@@ -231,22 +230,36 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     // room ID to space Room
     const spaceToRoom = new MapWithDefault<string, Set<Room>>(() => new Set())
 
-    // TODO: is spaceChildren recursive? or is it shallow? if it's shallow this code is wrong
-    // TODO: if there is a way to easily determine the parent space/server of a room the complexity of this would plummet
+    // Assign channels to their direct space parent.
 
     for (const space of spaces.values()) {
-      for (const childId of spaceChildren(space)) {
+      for (const childId of children.get(space.roomId) ?? []) {
         if (channels.has(childId)) spaceToRoom.get(space.roomId).add(channels.get(childId)!)
       }
     }
 
+    // Traverse each server tree so every descendant can resolve back to its root server.
+    // Only channels directly under the server should appear in `serverToRoom`.
     for (const server of servers.values()) {
-      for (const childId of spaceChildren(server)) {
-        childToServer.set(childId, server)
-        if (channels.has(childId)) {
-          serverToRoom.get(server.roomId).add(channels.get(childId)!)
-        } else if (spaces.has(childId)) {
-          serverToSpace.get(server.roomId).add(spaces.get(childId)!)
+      const queue = [server]
+      const visited = new Set<string>()
+
+      while (queue.length > 0) {
+        const currentSpace = queue.shift()!
+        if (visited.has(currentSpace.roomId)) continue
+        visited.add(currentSpace.roomId)
+
+        for (const childId of children.get(currentSpace.roomId) ?? []) {
+          childToServer.set(childId, server)
+
+          if (channels.has(childId)) {
+            if (currentSpace.roomId === server.roomId) {
+              serverToRoom.get(server.roomId).add(channels.get(childId)!)
+            }
+          } else if (spaces.has(childId)) {
+            serverToSpace.get(server.roomId).add(spaces.get(childId)!)
+            queue.push(spaces.get(childId)!)
+          }
         }
       }
     }
