@@ -42,13 +42,13 @@
     * \[x] Show that message was edited ~~and its edit history~~
   * \[x] Deleting
   * \[x] Reactions
-  * \[ ] Read receipts
+  * \[x] Read receipts
   * \[ ] Threading
   * \[x] Mentions
   * \[x] Typing indicator
   * \[x] Replies/Quotes
-  * \[ ] Unread messages
-  * \[ ] Jump to/load to unread
+  * \[x] Unread messages
+  * \[x] Jump to/load to unread
   * \[ ] Live location messages
   * \[ ] Attachments
     * \[x] Images
@@ -75,6 +75,8 @@
 2. UI:
 
 * \[ ] Yes.
+
+- \[ ] Hide based on contentvisibilityautostatechange
 
 * \[ ] During first load have a pick for users, quick picks like: "I want discord style" or "I want element style" and manual picks like "I want to pick each component style manually"
 

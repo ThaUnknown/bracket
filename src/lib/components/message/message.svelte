@@ -22,6 +22,7 @@
   export let receipts: CachedReceipt[] = []
   export let reactions: Readable<Array<TypedMatrixEvent<'m.reaction'>>>
   export let client: ClientInstance
+  export let checkRead: (event: TypedMatrixEvent) => void
 
   function isMessage (event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>): event is TypedMatrixEvent<'m.room.message'> {
     return event.getType() === 'm.room.message'
@@ -43,9 +44,22 @@
   $: groupedReactions = Map.groupBy($reactions, r => r.getContent()['m.relates_to'].key)
 
   $: reply = event.getContent()['m.relates_to']?.['m.in_reply_to']?.event_id
+
+  function intersection (node: HTMLElement) {
+    // TODO: investigate how expensive this is
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) checkRead(event)
+    }, { threshold: 0.7 })
+    observer.observe(node)
+    return {
+      destroy () {
+        observer.disconnect()
+      }
+    }
+  }
 </script>
 
-<div class='p-1 max-h-60 ring ring-inset ring-black/10 dark:ring-white/15 flex flex-col'>
+<div class='p-1 max-h-60 ring ring-inset ring-black/10 dark:ring-white/15 flex flex-col' use:intersection>
   {#if user}
     <User {user} />: {isEdited ? '(edited)' : ''}
   {/if}
@@ -56,7 +70,7 @@
       {#if replyEvent}
         In reply to {replyEvent.getSender()}: {replyEvent.getContent().body}
       {/if}
-      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} />
+      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} {checkRead} />
     {/await}
   {/if}
   {#if isMessage(event)}

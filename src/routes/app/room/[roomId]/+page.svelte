@@ -10,13 +10,16 @@
   import { Message } from '$lib/components/message'
   import Button from '$lib/components/ui/button/button.svelte'
   import { User } from '$lib/components/user'
+  import { activityState, idleState, lockedState, visibilityState } from '$lib/modules/idle'
   import { createMediaMetadata } from '$lib/modules/matrix/attachment/metadata'
   import { events, messages, reactions, reads, typing } from '$lib/modules/matrix/room'
-  import { debounce } from '$lib/utils'
+  import { debounce, throttle } from '$lib/utils'
 
   export let data
 
   $: room = data.room
+
+  $: room.loadMembersIfNeeded()
 
   // $: pins = pinned(room)
 
@@ -25,17 +28,54 @@
   $: msgs = messages(liveevents)
 
   $: receipts = reads(room)
+
+  function concatreceipts (event: MatrixEvent, children: string[], receipts: ReceiptCache) {
+    const c = children.map(c => receipts.get(c) ?? [])
+    return (receipts.get(event.getId() || '') ?? []).concat(...c).filter(e => !!e)
+  }
+
   $: users = data.client.users
 
-  $: typingRooms = typing(data.client.matrix)
+  $: canJumpToLive = $liveevents && data.window.canPaginate(Direction.Forward)
 
-  $: typingRoom = $typingRooms.get(room.roomId)
+  $: active = $activityState === 'active'
+  $: idle = $idleState === 'idle'
+  $: visible = $visibilityState === 'visible'
+  $: locked = $lockedState === 'locked'
 
-  $: room.loadMembersIfNeeded()
+  $: canAutoReadMessage = active && !idle && visible && !locked
 
-  function scrollback () {
-    return data.window.paginate(Direction.Backward, 30)
+  $: myReceipt = $receipts && room.getEventReadUpTo(data.client.matrix.getSafeUserId())
+  $: myReceiptIndex = $liveevents.findLastIndex(e => e.getId() === myReceipt)
+
+  function readall () {
+    const last = $msgs.at(-1)?.[0]
+    if (!last) return
+    read(last)
   }
+
+  function read (event: MatrixEvent) {
+    data.client.matrix.setRoomReadMarkers(room.roomId, event.getId()!, event)
+  }
+
+  let toReadIndex = -1
+  let roReadEvent: MatrixEvent | undefined
+
+  function checkRead (matrixevent: MatrixEvent) {
+    const index = $liveevents.findIndex(e => e.getId() === matrixevent.getId())
+    if (index <= myReceiptIndex) return
+
+    toReadIndex = index
+    roReadEvent = matrixevent
+  }
+
+  const throttleRead = throttle(() => {
+    read(roReadEvent!)
+    toReadIndex = -1
+    roReadEvent = undefined
+  }, 1000)
+
+  $: canAutoReadMessage && toReadIndex !== -1 && throttleRead()
 
   let getContent: () => EditorContent
   let setValue: (val?: string) => void
@@ -112,18 +152,26 @@
 
   const debouncedTyping = debounce((_: unknown) => data.client.matrix.sendTyping(room.roomId, !!value, 2000), 1500)
 
-  function concatreceipts (event: MatrixEvent, children: string[], receipts: ReceiptCache) {
-    const c = children.map(c => receipts.get(c) ?? [])
-    return (receipts.get(event.getId() || '') ?? []).concat(...c).filter(e => !!e)
+  $: value && debouncedTyping(value)
+
+  $: typingRooms = typing(data.client.matrix)
+  $: typingRoom = $typingRooms.get(room.roomId)
+
+  async function present () {
+    await data.window.load(undefined, 30)
+    liveevents = events(room, data.window)
   }
 
-  $: value && debouncedTyping(value)
+  function scrollback () {
+    return data.window.paginate(Direction.Backward, 30)
+  }
+
 </script>
 
 <div class='h-full flex flex-col'>
   <div class='h-full overflow-y-auto flex flex-col'>
     {#each $msgs as [event, children] (event.getId())}
-      <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} />
+      <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} {checkRead} />
       <div>
         <Button on:click={() => edit(event)}>Edit</Button>
         <Button on:click={() => reply(event)}>Reply</Button>
@@ -152,6 +200,8 @@
   <div class='flex'>
     <Button on:click={scrollback}>Load More</Button>
     <Button on:click={message}>Send</Button>
+    <Button on:click={readall}>Mark as Read</Button>
+    <Button on:click={present} disabled={!canJumpToLive}>Jump to Present</Button>
     <Button variant='outline' on:click={file}>Attach</Button>
     <Button variant='outline' on:click={location}>Location</Button>
   </div>

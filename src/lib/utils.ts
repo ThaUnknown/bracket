@@ -47,3 +47,19 @@ export const debounce = <T extends (...args: any[]) => unknown>(
     timeout = setTimeout(() => callback(...args), waitFor)
   }
 }
+
+export const throttle = <T extends (...args: any[]) => unknown>(
+  callback: T,
+  limit: number
+) => {
+  let waiting = false
+  return (...args: Parameters<T>) => {
+    if (!waiting) {
+      waiting = true
+      setTimeout(() => {
+        callback(...args)
+        waiting = false
+      }, limit)
+    }
+  }
+}

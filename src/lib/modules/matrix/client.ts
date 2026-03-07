@@ -93,12 +93,10 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
 
     const getPollTimeout = () => ['cellular', 'unknown'].includes(navigator.connection?.type || '') ? 5_000 : 30_000
 
-    if (navigator.connection) {
-      navigator.connection.addEventListener('change', () => {
+    navigator.connection?.addEventListener('change', () => {
         // @ts-expect-error there's not a way to update the timeout for the sync client once network changes... eh... pathetic
         this.matrix.syncApi!.opts.pollTimeout = getPollTimeout()
-      }, this.ctrl)
-    }
+    }, this.ctrl)
 
     await this.matrix.initRustCrypto()
     await this.store.startup()
