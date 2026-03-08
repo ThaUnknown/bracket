@@ -18,42 +18,48 @@ export function encryptAttachmentStream (rawStream: ReadableStream<Uint8Array>) 
   // this is highly unfortunate but Web Crypto doesn't support partial hashes
   const hasher = sha256.create()
 
-  const reader = rawStream.getReader()
-
   let buffer = new Uint8Array(0)
 
-  const stream = new ReadableStream<Uint8Array>({
-    async start () {
-      cryptoKey = await crypto.subtle.generateKey({ name, length: 256 }, true, ['encrypt', 'decrypt'])
-    },
-    async pull (controller) {
+  const encryptChunk = async (plainChunk: Uint8Array<ArrayBuffer>) => {
+    const cipherChunk = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-CTR', counter, length: 64 }, cryptoKey, plainChunk))
+    hasher.update(cipherChunk)
+    counterView.setBigUint64(0, counterView.getBigUint64(0) + BigInt(Math.floor(plainChunk.byteLength / 16)))
+    return cipherChunk
+  }
+
+  const stream = rawStream.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+    async start (controller) {
       try {
-        while (true) {
-          const { done, value } = await reader.read()
+        cryptoKey = await crypto.subtle.generateKey({ name, length: 256 }, true, ['encrypt', 'decrypt'])
+      } catch (error) {
+        controller.error(error)
+        hasher.destroy()
+        info.reject(error)
+      }
+    },
+    async transform (value, controller) {
+      try {
+        const next = new Uint8Array(buffer.byteLength + value.byteLength)
+        next.set(buffer)
+        next.set(value, buffer.byteLength)
+        buffer = next
 
-          if (value) {
-            // Append incoming bytes to the carry buffer
-            const next = new Uint8Array(buffer.byteLength + value.byteLength)
-            next.set(buffer)
-            next.set(value, buffer.byteLength)
-            buffer = next
-          }
-
-          // Flush all complete chunks, holding back a partial tail
-          while (buffer.byteLength >= (done ? 1 : CHUNK_SIZE)) {
-            const sliceEnd = done ? buffer.byteLength : CHUNK_SIZE
-            const plainChunk = buffer.subarray(0, sliceEnd)
-            buffer = buffer.subarray(sliceEnd)
-
-            const cipherChunk = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-CTR', counter, length: 64 }, cryptoKey, plainChunk))
-            controller.enqueue(cipherChunk)
-            hasher.update(cipherChunk)
-            // Advance the counter by the number of AES blocks we just consumed.
-            // Each block is 16 bytes; the counter occupies the low 8 bytes (bytes 8–15).
-            counterView.setBigUint64(0, counterView.getBigUint64(0, false) + BigInt(Math.floor(plainChunk.byteLength / 16)), false)
-          }
-
-          if (done) break
+        const fullBytes = buffer.byteLength - (buffer.byteLength % CHUNK_SIZE)
+        if (fullBytes) {
+          controller.enqueue(await encryptChunk(buffer.subarray(0, fullBytes)))
+          buffer = buffer.subarray(fullBytes)
+        }
+      } catch (error) {
+        controller.error(error)
+        hasher.destroy()
+        info.reject(error)
+      }
+    },
+    async flush (controller) {
+      try {
+        if (buffer.byteLength) {
+          controller.enqueue(await encryptChunk(buffer))
+          buffer = new Uint8Array(0)
         }
 
         info.resolve({
@@ -65,14 +71,13 @@ export function encryptAttachmentStream (rawStream: ReadableStream<Uint8Array>) 
             sha256: hasher.digest().toBase64({ omitPadding: true })
           }
         })
-
-        controller.close()
-      } catch (err) {
-        info.reject(err)
-        controller.error(err)
+      } catch (error) {
+        controller.error(error)
+        hasher.destroy()
+        info.reject(error)
       }
     }
-  })
+  }))
 
   return { stream, info: info.promise }
 }
@@ -197,6 +202,7 @@ export function createDecryptionStream (
         if (hash && !info.hashes.sha256) throw new Error('Missing hash for encrypted attachment.')
       } catch (error) {
         controller.error(error)
+        if (hasher) hasher.destroy()
       }
     },
 
@@ -228,6 +234,7 @@ export function createDecryptionStream (
         buffer = buffer.subarray(completeBlocks)
       } catch (error) {
         controller.error(error)
+        if (hasher) hasher.destroy()
       }
     },
 
@@ -246,6 +253,7 @@ export function createDecryptionStream (
         enqueueOutput(controller, new Uint8Array(await crypto.subtle.decrypt({ name, length, counter }, cryptoKey, padded)).subarray(0, buffer.length))
       } catch (error) {
         controller.error(error)
+        if (hasher) hasher.destroy()
       }
     }
   })

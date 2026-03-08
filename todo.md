@@ -23,9 +23,35 @@
   * \[ ] Profile management
     * \[ ] Changing display name
     * \[ ] Changing avatar
-    * \[ ] Extra metadata from that one extension spec, such as description, status bubble and maaaaaaaybe background image (probably not, but maybe)
+    * \[ ] Extra metadata from that one extension spec, such as description, status bubble and background image via attachment upload. ex:
 
-* \[ ] Investigate if Server/Communities folders are possible
+```json
+{
+  "avatar_url": "mxc://example.com/SEsfnsuifSDFSSEFsf",
+  "displayname": "Pockets",
+  "io.fsky.nyx.pronouns": [
+    {
+      "language": "en",
+      "summary": "he"
+    }
+  ],
+  "m.status": {
+    "emoji": "😴",
+    "text": "tired"
+  },
+  "org.msc.4426.status": {
+    "emoji": "😴",
+    "text": "tired"
+  },
+  "pt.aguiarvieira.whoami": [
+    {
+      "language": "en",
+      "summary": "Not Pockets!"
+    }
+  ],
+  "us.cloke.msc4175.tz": "Europe/Lisbon"
+}
+```
 
 * \[ ] Notifications
   * \[ ] Managing
