@@ -55,9 +55,16 @@
 
   OverType.setCodeHighlighter(syncShikiHighlighter)
   // @ts-expect-error - no types available
-  OverType.setCustomSyntax((html: string) => {
-    return html.replace(/(^|[^\w])@([^\s]+)/g, '$1<span class="markdown-mention">@$2</span>')
-  })
+  OverType.setCustomSyntax((html: string) => html
+    .replace(/(^|[^\w])([A-Za-z0-9+.-]*:\/\/[^\s<>"'`]+)/g, (_match, prefix: string, uriMatch: string) => {
+      const uri = uriMatch.replace(/[.,!?;:]+$/u, '')
+      if (!uri) return `${prefix}${uriMatch}`
+
+      const trailing = uriMatch.slice(uri.length)
+      return `${prefix}<a href="${uri}" target="_blank" rel="noopener noreferrer" style="--link: var(--accent-foreground) !important">${uri}</a>${trailing}`
+    })
+    .replace(/(^|[^\w])@([^\s]+)/g, '$1<span class="markdown-mention">@$2</span>')
+  )
 </script>
 
 <script lang='ts'>

@@ -14,4 +14,4 @@
 </script>
 
 ({width}x{height}, {Math.round(size / 1024)}KB)
-<img {src} alt={name} class='h-full object-contain min-h-0' loading='lazy' />
+<img {src} alt={name} class='h-full object-contain min-h-0' decoding='async' loading='lazy' />

@@ -65,6 +65,7 @@
     const index = $liveevents.findIndex(e => e.getId() === matrixevent.getId())
     if (index <= myReceiptIndex) return
 
+    // TODO: this should await that the event we sent has settled and isnt pending
     toReadIndex = index
     roReadEvent = matrixevent
   }
@@ -73,7 +74,7 @@
     read(roReadEvent!)
     toReadIndex = -1
     roReadEvent = undefined
-  }, 1000)
+  }, 500)
 
   $: canAutoReadMessage && toReadIndex !== -1 && throttleRead()
 

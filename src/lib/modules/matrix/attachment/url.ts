@@ -21,7 +21,7 @@ export function mxcToHttp (mxc: string, encrypted?: EncryptedFile, fileLength = 
     undefined,
     true,
     true,
-    !!encrypted
+    true
   )
 
   if (!encrypted || !http) return http || mxc

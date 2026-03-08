@@ -77,9 +77,9 @@
     {@const content = event.getContent()}
     {@const type = content.msgtype}
     {#if type === MsgType.Text}
-      <Text {content} />
+      <Text {content} {client} />
     {:else if type === MsgType.Emote}
-      <Text {content} />
+      <Text {content} {client} />
     {:else if type === MsgType.Image}
       <Image {content} />
     {:else if type === MsgType.Video}
@@ -91,7 +91,7 @@
     {:else if type === MsgType.Location}
       <Location {content} />
     {:else if type === MsgType.Notice}
-      <Text {content} />
+      <Text {content} {client} />
     {:else if type === MsgType.KeyVerificationRequest}
       KeyVerificationRequest?
     {:else}

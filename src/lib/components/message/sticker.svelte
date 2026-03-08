@@ -10,4 +10,4 @@
 </script>
 
 {Math.round(size / 1024)}KB
-<img {src} alt={content.body} class='h-full min-h-0 object-contain bg-transparent' loading='lazy' />
+<img {src} alt={content.body} class='h-full object-contain min-h-0' decoding='async' loading='lazy' />

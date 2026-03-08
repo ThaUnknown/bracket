@@ -74,11 +74,11 @@ registerRoute(
 
           // strip encryption params
           const url = new URL(request.url)
-          const hasParams = url.search.length > 2
+          const hasParams = url.searchParams.has('key') && url.searchParams.has('iv')
           const encryptedParam = Object.fromEntries(
             url.searchParams.entries().map(([key, value]) => [key, JSON.parse(value)])
           ) as EncryptedFile & { fileLength?: number }
-          url.search = '?allow_redirect=true'
+          if (hasParams) url.search = '?allow_redirect=true'
 
           // some clients don't include the file length in the encrypted file info, so we need to fetch it ourselves if it's missing, if they do then we can skip this step which saves a network request and speeds up the response time
           if (hasParams && !encryptedParam.fileLength) {

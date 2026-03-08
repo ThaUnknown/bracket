@@ -63,7 +63,7 @@
     * \[x] Mentions
   * \[x] Rendering
     * \[x] Formatting (Markdown)
-    * \[ ] Auto-link detection
+    * \[x] Auto-link detection
   * \[x] Editing
     * \[x] Show that message was edited ~~and its edit history~~
   * \[x] Deleting
@@ -76,11 +76,11 @@
   * \[x] Unread messages
   * \[x] Jump to/load to unread
   * \[ ] Live location messages
-  * \[ ] Attachments
+  * \[x] Attachments
     * \[x] Images
     * \[x] Files
-    * \[ ] Links
-      * \[ ] Link previews
+    * \[x] Links
+      * \[x] Link previews
   * \[ ] Permissions \[can the user type, delete, edit or not]
 
 * \[ ] Ensure single tab mode
@@ -94,7 +94,7 @@
   * \[ ] Could potentially wake up the client with a push notification, which would sync in background
   * \[ ] Proper background sync
 
-* \[ ] Hover preloads via sveltekit, needs proper handling in +layout.ts and +page.ts
+* \[x] Hover preloads via sveltekit, needs proper handling in +layout.ts and +page.ts
 
 * \[ ] CSP/CORP
 

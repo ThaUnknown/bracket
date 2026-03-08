@@ -1,4 +1,6 @@
 <script lang='ts'>
+  import FilePreview from './filepreview.svelte'
+
   import type { FileContent } from 'matrix-js-sdk/lib/types'
 
   import { mxcToHttp } from '$lib/modules/matrix/attachment/url'
@@ -12,4 +14,4 @@
 // handle some file formats such as pdfs and code text files with shikicodeblocks? serviceworker supports this.
 </script>
 
-<a href={src} download={name}>{name}</a>
+<FilePreview {src} {name} {size} />

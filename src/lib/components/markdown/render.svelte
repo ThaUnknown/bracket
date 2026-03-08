@@ -59,6 +59,39 @@
       return `<span class="markdown-mention">${token.raw}</span>`
     }
   }
+
+  const URI_PATTERN = /^([A-Za-z0-9+.-]*:\/\/[^\s<>"'`]+)/
+  const TRAILING_SENTENCE_PUNCTUATION_PATTERN = /[.,!?;:]+$/u
+
+  const trimSentencePunctuation = (value: string) => value.replace(TRAILING_SENTENCE_PUNCTUATION_PATTERN, '')
+
+  const uri: TokenizerAndRendererExtension = {
+    name: 'customlink',
+    level: 'inline',
+    start: (src) => src.search(/[A-Za-z0-9+.-]*:\/\//),
+    tokenizer (src: string) {
+      const match = URI_PATTERN.exec(src)
+      if (!match) return
+
+      const rawMatch = match[1]
+      if (!rawMatch) return
+
+      const raw = trimSentencePunctuation(rawMatch)
+      if (!raw) return
+
+      return {
+        type: 'customlink',
+        raw,
+        title: null,
+        text: raw,
+        href: raw,
+        tokens: [{ type: 'text', raw, text: raw }]
+      }
+    },
+    renderer (token) {
+      return `<a href="${token.href}" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-hover hover:underline focus:outline-hidden focus:underline">${token.text}</a>`
+    }
+  }
 </script>
 
-<div use:render={marked.use(shiki).use({ extensions: [mention] }).parse(markdown, { async: true })} class='contents' />
+<div use:render={marked.use(shiki).use({ extensions: [mention, uri] }).parse(markdown, { async: true })} class='contents' />

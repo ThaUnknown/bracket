@@ -4,6 +4,9 @@
 
 :root {
   color-scheme: light dark only;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+  --default-font-family: 'Nunito Variable', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius: 0.625rem;
   --background: oklch(0.9911 0 0);
   --foreground: oklch(0.1994 0.0470 270.6494);
@@ -158,14 +161,8 @@ html,
 body {
   height: 100vh !important;
   width: 100%;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  scroll-behavior: smooth;
-  overscroll-behavior: none;
-  user-select: none;
-  font-family: 'Nunito Variable'
 }
 
 img,
