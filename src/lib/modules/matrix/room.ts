@@ -142,7 +142,7 @@ export function isSpace (room: Room) {
 }
 
 export function spaceChildren (room: Room) {
-  return room.currentState.getStateEvents(EventType.SpaceChild).reduce<string[]>((arr, e) => {
+  return room.currentState.getStateEvents(EventType.SpaceChild).sort((a, b) => (a.event.origin_server_ts || a.localTimestamp) - (b.event.origin_server_ts || b.localTimestamp)).reduce<string[]>((arr, e) => {
     if (!Array.isArray(e.getContent<{ via?: string[] }>().via)) return arr
 
     const key = e.getStateKey()

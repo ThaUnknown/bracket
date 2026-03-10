@@ -70,7 +70,7 @@
       {#if replyEvent}
         In reply to {replyEvent.getSender()}: {replyEvent.getContent().body}
       {/if}
-      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} {checkRead} />
+      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} {checkRead} {room} />
     {/await}
   {/if}
   {#if isMessage(event)}

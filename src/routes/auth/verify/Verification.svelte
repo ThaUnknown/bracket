@@ -9,14 +9,10 @@
   // TODO: this needs to support incoming and outgoing requests
 
   export let verification: VerificationRequest
-  // let chosenMethod: string | null
-  // let phase: VerificationPhase
 
   $: chosenMethod = verification.chosenMethod
   $: phase = verification.phase
 
-  // let showSAS: boolean
-  // let showQR: boolean
   // $: showSAS = verification.otherPartySupportsMethod(VerificationMethod.Sas)
   // $: showQR = verification.otherPartySupportsMethod(VerificationMethod.Reciprocate)
 

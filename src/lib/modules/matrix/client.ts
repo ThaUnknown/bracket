@@ -1,8 +1,8 @@
-import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, RoomStateEvent, RelationType } from 'matrix-js-sdk'
+import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, RoomStateEvent, RelationType, JoinRule, RoomEvent } from 'matrix-js-sdk'
 import { CryptoEvent } from 'matrix-js-sdk/lib/crypto-api'
 import { removeElement } from 'matrix-js-sdk/lib/utils'
 import { readable } from 'simple-store-svelte'
-import { derived } from 'svelte/store'
+import { derived, type Readable } from 'svelte/store'
 
 import { asyncify, constructor } from '../async.ts'
 import { once, oncelazy } from '../store.ts'
@@ -12,6 +12,7 @@ import { currentverified } from './devices.ts'
 import { buildSpaceTree, isSpace, isVideo } from './room.ts'
 import { secretStorageKeys } from './secrets.ts'
 
+import type { IHierarchyRoom } from 'matrix-js-sdk/lib/@types/spaces'
 import type { ISyncStateData } from 'matrix-js-sdk/lib/sync'
 import type { EncryptedFile, FileContent, RoomMessageEventContent } from 'matrix-js-sdk/lib/types'
 
@@ -159,7 +160,9 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
 
     this.matrix.on(ClientEvent.Room, update)
     this.matrix.on(ClientEvent.DeleteRoom, update)
+    this.matrix.on(RoomEvent.Name, update)
     return () => {
+      this.matrix.off(RoomEvent.Name, update)
       this.matrix.off(ClientEvent.Room, update)
       this.matrix.off(ClientEvent.DeleteRoom, update)
     }
@@ -178,7 +181,7 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     return () => this.matrix.off(ClientEvent.AccountData, update)
   })
 
-  roomtypes = derived<[typeof this.rooms, typeof this._dmsIds, typeof this.localstate], RoomsByType>([this.rooms, this._dmsIds, this.localstate], ([$rooms, $dmsIDs, $localSyncState], set) => {
+  roomtypes = derived([this.rooms, this._dmsIds, this.localstate], ([$rooms, $dmsIDs, $localSyncState], set: (value: RoomsByType) => void) => {
     const dms = new Map<string, Room>()
     const servers = new Map<string, Room>()
     const channels = new Map<string, Room>()
@@ -188,10 +191,17 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     // if local data is still being loaded, don't even try to categorize rooms as it causes all sorts of errors
     if (this.matrix.isInitialSyncComplete() || $localSyncState === SyncState.Syncing || $localSyncState === SyncState.Prepared) {
       // dms, spaces, rooms
-      for (const room of Object.values($rooms)) {
+      for (const room of Object.values($rooms).sort((a, b) => b.currentState.getLastModifiedTime() - a.currentState.getLastModifiedTime())) {
         if ($dmsIDs.has(room.roomId) || isVideo(room)) dms.set(room.roomId, room)
         else if (isSpace(room)) servers.set(room.roomId, room)
-        else channels.set(room.roomId, room)
+        else {
+          channels.set(room.roomId, room)
+          if (room.currentState.getJoinRule() === JoinRule.Invite) {
+            dms.set(room.roomId, room)
+          } else {
+            servers.set(room.roomId, room)
+          }
+        }
       }
 
       const tree = buildSpaceTree(servers)
@@ -215,7 +225,7 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     }
   })
 
-  groupedrooms = derived<typeof this.roomtypes, GroupedRooms>(this.roomtypes, ($roomtypes, set) => {
+  groupedrooms = derived(this.roomtypes, ($roomtypes, set: (value: GroupedRooms) => void) => {
     const { spaces, channels, servers, children } = $roomtypes
 
     // server -> space/room -> room
@@ -286,6 +296,25 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
       this.matrix.off(RoomStateEvent.NewMember, update)
     }
   })
+
+  hierarchy (room: string, limit = 50, maxDepth = 5, includeAllRooms = false): Readable<{ done: boolean, rooms: IHierarchyRoom[] }> {
+    return readable<{ done: boolean, rooms: IHierarchyRoom[] }>({ done: false, rooms: [] }, (set, update) => {
+      let cancelled = false
+      const load = async (next?: string) => {
+        try {
+          const chunk = await this.matrix.getRoomHierarchy(room, limit, maxDepth, includeAllRooms, next)
+          update(prev => ({ done: !chunk.next_batch, rooms: [...prev.rooms, ...chunk.rooms] }))
+          if (chunk.next_batch && !cancelled) await load(chunk.next_batch)
+        } catch (error) {
+          console.error('Failed to load room hierarchy', error)
+        }
+      }
+
+      load()
+
+      return () => { cancelled = true }
+    })
+  }
 
   async room (roomId: string) {
     const room = await Promise.race([

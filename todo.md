@@ -49,7 +49,16 @@
       "summary": "Not Pockets!"
     }
   ],
-  "us.cloke.msc4175.tz": "Europe/Lisbon"
+  "us.cloke.msc4175.tz": "Europe/Lisbon",
+  "m.tz": "Europe/Lisbon",
+  "kitty.meow.is_cat": true,
+  "moe.sable.app.bio": "test",
+  "kitty.meow.has_cats": true,
+  "chat.commet.profile_bio": {
+    "format": "org.matrix.custom.html",
+    "formatted_body": "test"
+  },
+  "chat.commet.profile_banner": "mxc://example.com/SEsfnsuifSDFSSEFsf"
 }
 ```
 
