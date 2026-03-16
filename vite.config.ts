@@ -32,7 +32,10 @@ export default defineConfig({
     }),
     devtoolsJson()
   ],
-  server: { port: 7345 },
+  server: {
+    port: 7345,
+    forwardConsole: false
+  },
   build: {
     target: 'esnext',
     sourcemap: true
@@ -42,6 +45,9 @@ export default defineConfig({
   },
   worker: {
     format: 'es'
+  },
+  devtools: {
+    enabled: false
   },
   optimizeDeps: {
     exclude: ['@matrix-org/matrix-sdk-crypto-wasm']

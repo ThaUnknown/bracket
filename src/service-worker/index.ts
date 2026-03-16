@@ -25,18 +25,19 @@ skipWaiting()
 
 // registerRoute(new Route(({ request }) => request.mode === 'navigate',
 //   new NetworkOnly({
-//     plugins: [new PrecacheFallbackPlugin({ fallbackURL: FALLBACK_URL }),
+//     plugins: [new PrecacheFallbackPlugin({ fallbackURL: directoryIndex }),
 //       {
 //         async fetchDidSucceed ({ response }) {
 //           if (response.ok) return response
 
-//           return await matchPrecache(FALLBACK_URL) ?? response
+//           return await matchPrecache(directoryIndex) ?? response
 //         }
 //       }]
 //   })
 // ))
 
 self.__WB_DISABLE_DEV_LOGS = true
+
 //
 // Matrix asset handling
 //
@@ -141,7 +142,7 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new RangeRequestsPlugin(),
       new ExpirationPlugin({
-        maxEntries: 100,
+        maxEntries: 400,
         maxAgeSeconds: 3 * 24 * 60 * 60, // 3 days
         purgeOnQuotaError: true
       })

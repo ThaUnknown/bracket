@@ -18,7 +18,7 @@
 
   export let event: TypedMatrixEvent<'m.room.message' | 'm.sticker'>
   export let room: Room
-  export let users: Record<string, MatrixUser>
+  export let users: Map<string, MatrixUser>
   export let receipts: CachedReceipt[] = []
   export let reactions: Readable<Array<TypedMatrixEvent<'m.reaction'>>>
   export let client: ClientInstance
@@ -36,7 +36,7 @@
     return client.delete(event.getRoomId()!, event.getId()!)
   }
 
-  $: user = users[event.getSender() || '']
+  $: user = users.get(event.getSender() || '')
 
   // @ts-expect-error private field
   $: isEdited = !!event._replacingEvent
@@ -70,7 +70,7 @@
       {#if replyEvent}
         In reply to {replyEvent.getSender()}: {replyEvent.getContent().body}
       {/if}
-      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} {checkRead} {room} />
+      <svelte:self event={replyEvent} {users} reactions={readable([])} receipts={[]} {client} checkRead={() => {}} {room} />
     {/await}
   {/if}
   {#if isMessage(event)}
@@ -100,10 +100,10 @@
   {:else}
     <Sticker content={event.getContent()} />
   {/if}
-  <div class='flex gap-1'>
+  <div class='flex gap-1 flex-wrap overflow-clip h-10'>
     {receipts.length} Receipts:
     {#each receipts as receipt (receipt.userId)}
-      {@const user = users[receipt.userId]}
+      {@const user = users.get(receipt.userId)}
       {#if user}
         <User {user} />: {receipt.type}
       {:else}
@@ -116,7 +116,7 @@
     {#each groupedReactions.entries() as [emoji, events] (emoji)}
       {#each events as event (event.getId())}
         {emoji}:
-        {@const user = users[event.getSender() || '']}
+        {@const user = users.get(event.getSender() || '')}
         {#if user}
           <User {user} />
         {:else}

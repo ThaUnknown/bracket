@@ -1,4 +1,4 @@
-import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, RoomStateEvent, RelationType, JoinRule, RoomEvent } from 'matrix-js-sdk'
+import { createClient, IndexedDBStore, type MatrixClient, type LoginResponse, ClientEvent, type Room, SyncState, EventType, type UploadResponse, type Upload, MediaPrefix, Method, MsgType, MatrixError, type User, RoomStateEvent, RelationType, JoinRule } from 'matrix-js-sdk'
 import { CryptoEvent } from 'matrix-js-sdk/lib/crypto-api'
 import { removeElement } from 'matrix-js-sdk/lib/utils'
 import { readable } from 'simple-store-svelte'
@@ -160,9 +160,7 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
 
     this.matrix.on(ClientEvent.Room, update)
     this.matrix.on(ClientEvent.DeleteRoom, update)
-    this.matrix.on(RoomEvent.Name, update)
     return () => {
-      this.matrix.off(RoomEvent.Name, update)
       this.matrix.off(ClientEvent.Room, update)
       this.matrix.off(ClientEvent.DeleteRoom, update)
     }
@@ -283,9 +281,9 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
   })
 
   // TODO: this might not update when members are lazy loaded? that needs to be verified for stuff like read receipts and reactions
-  users = readable<Record<string, User>>({}, set => {
+  users = readable<Map<string, User>>(new Map(), set => {
     // @ts-expect-error private field access
-    const update = () => set(this.store.users)
+    const update = () => set(new Map(Object.entries(this.store.users)))
     update()
 
     // this.matrix.on(RoomStateEvent.Update, update)
@@ -316,13 +314,37 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     })
   }
 
-  async room (roomId: string) {
+  async loadroom (roomId: string) {
     const room = await Promise.race([
       once(this.rooms, r => r[roomId] !== undefined),
       this.prepared
     ])
 
     if (typeof room === 'object') return room[roomId]
+  }
+
+  // store for a single room which updates on state changes
+  room (room: Room) {
+    return readable(room, set => {
+      const update = () => set(room)
+
+      room.on(RoomStateEvent.Update, update)
+      return () => room.off(RoomStateEvent.Update, update)
+    })
+  }
+
+  members (room: Room) {
+    const get = () => room.currentState.members
+
+    return readable(get(), set => {
+      const update = () => set(get())
+      room.on(RoomStateEvent.Members, update)
+      room.on(RoomStateEvent.NewMember, update)
+      return () => {
+        room.off(RoomStateEvent.Members, update)
+        room.off(RoomStateEvent.NewMember, update)
+      }
+    })
   }
 
   async event (room: Room, eventId: string) {

@@ -1,6 +1,9 @@
 1. Functional:
 
 * \[ ] Rooms
+  * \[ ] Previews
+  * \[ ] Invites
+  * \[x] Hierarchy
   * \[ ] Permissions
   * \[ ] Higher default room version
   * \[ ] Managing roms
@@ -24,43 +27,6 @@
     * \[ ] Changing display name
     * \[ ] Changing avatar
     * \[ ] Extra metadata from that one extension spec, such as description, status bubble and background image via attachment upload. ex:
-
-```json
-{
-  "avatar_url": "mxc://example.com/SEsfnsuifSDFSSEFsf",
-  "displayname": "Pockets",
-  "io.fsky.nyx.pronouns": [
-    {
-      "language": "en",
-      "summary": "he"
-    }
-  ],
-  "m.status": {
-    "emoji": "😴",
-    "text": "tired"
-  },
-  "org.msc.4426.status": {
-    "emoji": "😴",
-    "text": "tired"
-  },
-  "pt.aguiarvieira.whoami": [
-    {
-      "language": "en",
-      "summary": "Not Pockets!"
-    }
-  ],
-  "us.cloke.msc4175.tz": "Europe/Lisbon",
-  "m.tz": "Europe/Lisbon",
-  "kitty.meow.is_cat": true,
-  "moe.sable.app.bio": "test",
-  "kitty.meow.has_cats": true,
-  "chat.commet.profile_bio": {
-    "format": "org.matrix.custom.html",
-    "formatted_body": "test"
-  },
-  "chat.commet.profile_banner": "mxc://example.com/SEsfnsuifSDFSSEFsf"
-}
-```
 
 * \[ ] Notifications
   * \[ ] Managing

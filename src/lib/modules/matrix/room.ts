@@ -82,6 +82,15 @@ export function messages (liveevents: ReturnType<typeof events>) {
   })
 }
 
+export function state (room: Room) {
+  return readable(room.currentState, set => {
+    const update = () => set(room.currentState)
+    update()
+    room.on(RoomStateEvent.Update, update)
+    return () => room.off(RoomStateEvent.Update, update)
+  })
+}
+
 export function pinned (room: Room) {
   const get = () => room.currentState.getStateEvents('m.room.pinned_events') as Array<TypedMatrixEvent<'m.room.pinned_events'>>
 

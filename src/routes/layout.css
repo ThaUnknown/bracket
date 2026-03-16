@@ -3,9 +3,10 @@
 @import 'tw-animate-css';
 
 :root {
-  color-scheme: light dark only;
+  color-scheme: only light;
   scroll-behavior: smooth;
   overscroll-behavior: none;
+  user-select: none;
   --default-font-family: 'Nunito Variable', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius: 0.625rem;
   --background: oklch(0.9911 0 0);
@@ -60,6 +61,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: only dark;
     --background: oklch(0 0 0);
     --foreground: oklch(1.0000 0 0);
     --card: oklch(0.1684 0 0);
@@ -155,92 +157,101 @@
   body {
     @apply bg-background text-foreground;
   }
-}
 
-html,
-body {
-  height: 100vh !important;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
+  html,
+  body {
+    height: 100vh !important;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 
-img,
-a {
-  -webkit-user-drag: none;
-}
+  img,
+  a {
+    -webkit-user-drag: none;
+  }
 
-*:focus-visible {
-  outline: none;
-  border-image: fill 0 linear-gradient(#8885, #8885);
-}
+  *:focus-visible {
+    outline: none;
+    border-image: fill 0 linear-gradient(#8885, #8885);
+  }
 
-*::-webkit-scrollbar {
-  display: none;
-}
+  *::-webkit-scrollbar {
+    display: none;
+  }
 
-a[href],
-button,
-fieldset,
-input,
-optgroup,
-option,
-select,
-textarea,
-details,
-[tabindex],
-[contenteditable] {
-  &:active:not([disabled], [type='range'], .no-scale, [tabindex="-1"]) {
+  a[href],
+  button,
+  fieldset,
+  input,
+  optgroup,
+  option,
+  select,
+  textarea,
+  details,
+  [tabindex],
+  [contenteditable] {
+    &:active:not([disabled], [type='range'], .no-scale, [tabindex="-1"]) {
+      transition: all 0.1s ease-in-out;
+      transform: translate3d(0, 2px, 0);
+    }
+  }
+
+  .scale-parent:has(.no-scale:active) {
     transition: all 0.1s ease-in-out;
-    transform: scale(0.98);
+    transform: translate3d(0, 2px, 0);
   }
-}
 
-.scale-parent:has(.no-scale:active) {
-  transition: all 0.1s ease-in-out;
-  transform: scale(0.98);
-}
-
-.overflow-y-scroll,
-.overflow-y-auto,
-.overflow-x-scroll,
-.overflow-x-auto,
-.overflow-auto,
-.overflow-scroll {
-  will-change: scroll-position;
-}
-
-.sr-only {
-  display: none !important;
-}
-
-::view-transition-old(my-root),
-::view-transition-new(my-root) {
-  animation-duration: 200ms;
-  animation-timing-function: ease-in-out;
-}
-
-::view-transition-old(my-root) {
-  animation-name: fade-out;
-}
-
-::view-transition-new(my-root) {
-  animation-name: fade-in;
-}
-
-@media (prefers-reduced-motion) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
+  .overflow-y-scroll,
+  .overflow-y-auto,
+  .overflow-x-scroll,
+  .overflow-x-auto,
+  .overflow-auto,
+  .overflow-scroll {
+    will-change: scroll-position;
   }
-}
 
-@font-face {
-  font-family: "Twemoji";
-  src: url("/twemoji.woff2") format("woff2");
-}
+  .sr-only {
+    display: none !important;
+  }
 
-.font-twemoji {
-  font-family: 'Twemoji';
+  ::view-transition-old(my-root),
+  ::view-transition-new(my-root) {
+    animation-duration: 200ms;
+    animation-timing-function: ease-in-out;
+  }
+
+  ::view-transition-old(my-root) {
+    animation-name: fade-out;
+  }
+
+  ::view-transition-new(my-root) {
+    animation-name: fade-in;
+  }
+
+  @media (prefers-reduced-motion) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
+
+  @font-face {
+    font-family: "Twemoji";
+    src: url("/twemoji.woff2") format("woff2");
+  }
+
+  .font-twemoji {
+    font-family: 'Twemoji';
+  }
+
+  .text-contrast-filter {
+    filter: invert(1) grayscale(1) brightness(1.2) contrast(9000);
+    mix-blend-mode: luminosity;
+    -webkit-font-smoothing: antialiased;
+    background-color: inherit;
+    background-clip: text;
+    color: transparent
+  }
 }

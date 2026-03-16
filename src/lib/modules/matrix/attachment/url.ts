@@ -12,7 +12,8 @@ wellknown.subscribe(value => {
   deref = value['m.homeserver'].base_url
 })
 
-export function mxcToHttp (mxc: string, encrypted?: EncryptedFile, fileLength = 0): string {
+export function mxcToHttp (mxc?: string, encrypted?: EncryptedFile, fileLength = 0): string {
+  if (!mxc) return ''
   const http = getHttpUriForMxc(
     deref,
     mxc,

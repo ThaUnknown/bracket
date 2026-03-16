@@ -8,18 +8,19 @@
 
   import { Editor } from '$lib/components/markdown'
   import { Message } from '$lib/components/message'
+  import { MemberList } from '$lib/components/room'
   import Button from '$lib/components/ui/button/button.svelte'
   import { User } from '$lib/components/user'
   import { activityState, idleState, lockedState, visibilityState } from '$lib/modules/idle'
   import { createMediaMetadata } from '$lib/modules/matrix/attachment/metadata'
-  import { events, messages, reactions, reads, typing } from '$lib/modules/matrix/room'
+  import { events, isSpace, messages, reactions, reads, state, typing } from '$lib/modules/matrix/room'
   import { debounce, throttle } from '$lib/utils'
 
   export let data
 
   $: room = data.room
 
-  $: room.loadMembersIfNeeded()
+  $: if (!isSpace(room)) room.loadMembersIfNeeded()
 
   // $: pins = pinned(room)
 
@@ -167,9 +168,11 @@
     return data.window.paginate(Direction.Backward, 30)
   }
 
+  $: statestore = state(room)
+  $: members = Object.entries($statestore.members)
 </script>
 
-<div class='h-full flex flex-col'>
+<div class='size-full flex flex-col'>
   <div class='h-full overflow-y-auto flex flex-col'>
     {#each $msgs as [event, children] (event.getId())}
       <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} {checkRead} />
@@ -179,7 +182,7 @@
       </div>
     {/each}
   </div>
-  <div>
+  <div class='flex flex-wrap w-full'>
     Typing:
     {#each typingRoom as [userId] (userId)}
       {@const user = $users.get(userId)}
@@ -206,4 +209,8 @@
     <Button variant='outline' on:click={file}>Attach</Button>
     <Button variant='outline' on:click={location}>Location</Button>
   </div>
+</div>
+<div class='flex flex-col shrink-0 w-50 p-2'>
+  <div class='text-muted-foreground text-xs my-2'>{members.length} Member{members.length !== 1 ? 's' : ''}</div>
+  <MemberList items={members} users={$users} />
 </div>

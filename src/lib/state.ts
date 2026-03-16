@@ -1,8 +1,10 @@
 // if you're thinking about using global state, think again
 import { set } from 'idb-keyval'
+import { createContext } from 'svelte'
 import { derived } from 'svelte/store'
 import { persisted } from 'svelte-persisted-store'
 
+import type { ClientInstance } from '$lib/modules/matrix/client'
 import type { IClientWellKnown, LoginResponse } from 'matrix-js-sdk'
 
 export const session = persisted<LoginResponse | null>('session', null)
@@ -24,3 +26,7 @@ derived([session, wellknown], ([$session, $wellknown]) => {
   const registration = await navigator.serviceWorker.ready
   registration.active!.postMessage(auth)
 })
+
+const [getClient, setClient] = createContext<ClientInstance>()
+
+export { setClient, getClient }

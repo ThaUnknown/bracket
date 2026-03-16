@@ -3,10 +3,10 @@
   font-weight: 500;
 }
 
-.overtype-wrapper .overtype-preview pre.code-block code {
-  line-height: 1 !important;
-}
-
 html .overtype-wrapper .overtype-input, html .overtype-wrapper .overtype-preview {
   font-family: var(--default-font-family) !important;
+}
+
+.shiki code {
+  text-wrap: auto;
 }
