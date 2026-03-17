@@ -13,9 +13,13 @@
   let ready = false
 
   async function test (e: Event & { currentTarget: EventTarget & Element }) {
-    const target = e.currentTarget as HTMLImageElement
-    await target.decode()
-    ready = true
+    try {
+      const target = e.currentTarget as HTMLImageElement
+      await target.decode()
+      ready = true
+    } catch {
+      error = true
+    }
   }
 
   let error = false

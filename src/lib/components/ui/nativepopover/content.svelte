@@ -1,67 +1,42 @@
 <script lang='ts'>
   import { getContext } from 'svelte'
 
-  import type { PopoverContext } from './types.js'
-  import type { ClassValue } from 'svelte/elements'
-
-  import { cn } from '$lib/utils'
+  import type { PopoverContext } from './types.ts'
 
   type Side = 'top' | 'bottom' | 'left' | 'right'
-  type Align = 'start' | 'center' | 'end'
 
-  let className: ClassValue | undefined = undefined
-  export { className as class }
-  /**
-     * Preferred side relative to the trigger.
-     * The browser will try fallbacks in this order when there is not enough room:
-     *   bottom → top → right → left  (and so on, depending on the initial side)
-     * @default 'bottom'
-     */
   export let side: Side = 'bottom'
-  /**
-     * Alignment along the cross-axis.
-     * @default 'center'
-     */
-  export let align: Align = 'center'
   export let sideOffset = 6
+  export let popover: 'auto' | 'manual' | 'hint' = 'auto'
 
-  const { open, id, close } = getContext<PopoverContext>('popover')
+  const { open, id } = getContext<PopoverContext>('popover')
 
-  // Lazy: don't render until first open
-  let hasBeenOpened = false
-
-  $: if ($open && !hasBeenOpened) hasBeenOpened = true
-
-  function handleToggle (e: ToggleEvent) {
-    if (e.newState === 'closed' && $open) close()
-    if (e.newState === 'open' && !$open) open.set(true)
+  function toggle ({ newState }: ToggleEvent) {
+    open.set(newState === 'open')
   }
 </script>
 
 <div
   {id}
-  popover='auto'
+  {popover}
   role='dialog'
-  class={cn('popover-content', className)}
   style:--side-offset='{sideOffset}px'
   style:--side='{side} span-all'
-  on:toggle={handleToggle}
+  on:toggle={toggle}
   {...$$restProps}>
-  {#if hasBeenOpened}
+  {#if $open}
     <slot />
   {/if}
 </div>
 
 <style>
-  .popover-content {
+  div {
+    /* reset default styles */
     width: auto;
-    inset: unset;
     border: none;
-    padding: 0;
     background: transparent;
     overflow: visible;
 
-    position: absolute;
     position-area: var(--side);
 
     margin: var(--side-offset);

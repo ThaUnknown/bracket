@@ -4,17 +4,16 @@
 
   import type { PopoverContext } from './types.ts'
 
-  const open = writable(false)
-  const id = crypto.randomUUID()
+  export let open = false
 
-  const context: PopoverContext = {
-    open,
-    id,
-    toggle: () => open.update((v) => !v),
-    close: () => open.set(false)
-  }
+  const _open = writable(false)
 
-  setContext<PopoverContext>('popover', context)
+  $: open = $_open
+
+  setContext<PopoverContext>('popover', {
+    open: _open,
+    id: crypto.randomUUID()
+  })
 </script>
 
 <slot />

@@ -1,7 +1,7 @@
 <script lang='ts'>
   import { getContext } from 'svelte'
 
-  import type { PopoverContext } from './types.js'
+  import type { PopoverContext } from './types.ts'
 
   const { id } = getContext<PopoverContext>('popover')
 </script>
