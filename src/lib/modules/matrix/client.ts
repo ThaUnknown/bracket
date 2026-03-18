@@ -189,7 +189,7 @@ export const MatrixChatClient = asyncify(class MatrixChatClient {
     // if local data is still being loaded, don't even try to categorize rooms as it causes all sorts of errors
     if (this.matrix.isInitialSyncComplete() || $localSyncState === SyncState.Syncing || $localSyncState === SyncState.Prepared) {
       // dms, spaces, rooms
-      for (const room of Object.values($rooms).sort((a, b) => b.currentState.getLastModifiedTime() - a.currentState.getLastModifiedTime())) {
+      for (const room of Object.values($rooms).toSorted((a, b) => b.currentState.getLastModifiedTime() - a.currentState.getLastModifiedTime())) {
         if ($dmsIDs.has(room.roomId) || isVideo(room)) dms.set(room.roomId, room)
         else if (isSpace(room)) servers.set(room.roomId, room)
         else {

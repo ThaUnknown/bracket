@@ -44,6 +44,7 @@
 	"dependencies": {
 		"@fontsource-variable/nunito": "^5.2.6",
 		"@fontsource/geist-mono": "^5.2.6",
+		"@fontsource/roboto": "^5.2.10",
 		"@humanspeak/svelte-virtual-list": "^0.4.3",
 		"@josesan9/svelte-virtual-scroll-list": "^1.1.2",
 		"@json-types/web-manifest": "^0.2.0",

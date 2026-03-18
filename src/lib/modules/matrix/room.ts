@@ -62,6 +62,17 @@ export function events (room: Room, window: TimelineWindow) {
   })
 }
 
+export function lastactive (room: Room) {
+  const get = () => ({ room, ts: room.getLastActiveTimestamp(), unread: room.getRoomUnreadNotificationCount() })
+
+  return readable(get(), set => {
+    const update = () => set(get())
+
+    room.on(RoomEvent.UnreadNotifications, update)
+    return () => room.off(RoomEvent.UnreadNotifications, update)
+  })
+}
+
 export function messages (liveevents: ReturnType<typeof events>) {
   return derived(liveevents, $live => {
     // return $live.filter((e): e is TypedMatrixEvent<'m.room.message' | 'm.sticker'> => {
@@ -151,7 +162,7 @@ export function isSpace (room: Room) {
 }
 
 export function spaceChildren (room: Room) {
-  return room.currentState.getStateEvents(EventType.SpaceChild).sort((a, b) => (a.event.origin_server_ts || a.localTimestamp) - (b.event.origin_server_ts || b.localTimestamp)).reduce<string[]>((arr, e) => {
+  return room.currentState.getStateEvents(EventType.SpaceChild).toSorted((a, b) => (a.event.origin_server_ts || a.localTimestamp) - (b.event.origin_server_ts || b.localTimestamp)).reduce<string[]>((arr, e) => {
     if (!Array.isArray(e.getContent<{ via?: string[] }>().via)) return arr
 
     const key = e.getStateKey()

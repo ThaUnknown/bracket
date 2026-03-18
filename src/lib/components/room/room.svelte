@@ -1,29 +1,31 @@
 <script lang='ts'>
-  import { LocationAssetType, type MatrixEvent, type IContent, type User as MatrixUser, type ReceiptCache, Direction } from 'matrix-js-sdk'
+  import { LocationAssetType, type MatrixEvent, type IContent, type User as MatrixUser, type ReceiptCache, Direction, type TimelineWindow, type Room } from 'matrix-js-sdk'
   import { makeHtmlMessage, makeTextMessage, makeLocationContent } from 'matrix-js-sdk/lib/content-helpers'
 
   import type { EditorContent } from '$lib/components/markdown/editor.svelte'
+  import type { ClientInstance } from '$lib/modules/matrix/client'
   import type { TypedMatrixEvent } from '$lib/modules/matrix/event'
   import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/types'
 
   import { Editor } from '$lib/components/markdown'
   import { Message } from '$lib/components/message'
+  import { MemberList } from '$lib/components/room'
   import Button from '$lib/components/ui/button/button.svelte'
   import { User } from '$lib/components/user'
   import { activityState, idleState, lockedState, visibilityState } from '$lib/modules/idle'
   import { createMediaMetadata } from '$lib/modules/matrix/attachment/metadata'
-  import { events, messages, reactions, reads, typing } from '$lib/modules/matrix/room'
+  import { events, isSpace, messages, reactions, reads, state, typing } from '$lib/modules/matrix/room'
   import { debounce, throttle } from '$lib/utils'
 
-  export let data
+  export let room: Room
+  export let window: TimelineWindow
+  export let client: ClientInstance
 
-  $: room = data.room
-
-  $: room.loadMembersIfNeeded()
+  $: if (!isSpace(room)) room.loadMembersIfNeeded()
 
   // $: pins = pinned(room)
 
-  $: liveevents = events(room, data.window)
+  $: liveevents = events(room, window)
 
   $: msgs = messages(liveevents)
 
@@ -34,9 +36,9 @@
     return (receipts.get(event.getId() || '') ?? []).concat(...c).filter(e => !!e)
   }
 
-  $: users = data.client.users
+  $: users = client.users
 
-  $: canJumpToLive = $liveevents && data.window.canPaginate(Direction.Forward)
+  $: canJumpToLive = $liveevents && window.canPaginate(Direction.Forward)
 
   $: active = $activityState === 'active'
   $: idle = $idleState === 'idle'
@@ -45,7 +47,7 @@
 
   $: canAutoReadMessage = active && !idle && visible && !locked
 
-  $: myReceipt = $receipts && room.getEventReadUpTo(data.client.matrix.getSafeUserId())
+  $: myReceipt = $receipts && room.getEventReadUpTo(client.matrix.getSafeUserId())
   $: myReceiptIndex = $liveevents.findLastIndex(e => e.getId() === myReceipt)
 
   function readall () {
@@ -55,7 +57,7 @@
   }
 
   function read (event: MatrixEvent) {
-    data.client.matrix.setRoomReadMarkers(room.roomId, event.getId()!, event)
+    client.matrix.setRoomReadMarkers(room.roomId, event.getId()!, event)
   }
 
   let toReadIndex = -1
@@ -84,7 +86,7 @@
   // TODO show error message sends
 
   function isValidUserMention (mention: string) {
-    return $users.get(mention) || Object.values($users).find(user => user.displayName === mention || user.rawDisplayName === mention)
+    return $users.get(mention) ?? Object.values($users).find(user => user.displayName === mention || user.rawDisplayName === mention)
   }
 
   async function message () {
@@ -92,7 +94,7 @@
     if (!markdown) return // dont send empty messages
     const event: RoomMessageEventContent & IContent = isMarkdown ? makeHtmlMessage(markdown, html) : makeTextMessage(markdown)
 
-    const valid = mentions.map(isValidUserMention).filter((e): e is MatrixUser => !!e && e.userId !== data.client.matrix.getUserId())
+    const valid = mentions.map(isValidUserMention).filter((e): e is MatrixUser => !!e && e.userId !== client.matrix.getUserId())
     if (valid.length) {
       event['m.mentions'] = {
         user_ids: valid.map(u => u.userId),
@@ -115,7 +117,7 @@
       replyEvent = undefined
     }
     setValue()
-    await data.client.matrix.sendMessage(room.roomId, event)
+    await client.matrix.sendMessage(room.roomId, event)
   }
 
   async function location () {
@@ -123,7 +125,7 @@
     const location = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject))
     const event = makeLocationContent(undefined, `geo:${location.coords.latitude},${location.coords.longitude}`, Date.now(), undefined, LocationAssetType.Pin) as RoomMessageEventContent
 
-    await data.client.message(room.roomId, event)
+    await client.message(room.roomId, event)
   }
 
   async function file () {
@@ -131,9 +133,9 @@
     const ctrl = new AbortController()
     const [fileHandle] = await showOpenFilePicker()
     const file = await fileHandle.getFile()
-    const content = await createMediaMetadata(file, data.client.createFile(file, ctrl), ctrl)
+    const content = await createMediaMetadata(file, client.createFile(file, ctrl), ctrl)
 
-    await data.client.message(room.roomId, content)
+    await client.message(room.roomId, content)
   }
 
   let value = ''
@@ -151,35 +153,37 @@
     editEvent = undefined
   }
 
-  const debouncedTyping = debounce((_: unknown) => data.client.matrix.sendTyping(room.roomId, !!value, 2000), 1500)
+  const debouncedTyping = debounce((_: unknown) => client.matrix.sendTyping(room.roomId, !!value, 2000), 1500)
 
   $: value && debouncedTyping(value)
 
-  $: typingRooms = typing(data.client.matrix)
+  $: typingRooms = typing(client.matrix)
   $: typingRoom = $typingRooms.get(room.roomId)
 
   async function present () {
-    await data.window.load(undefined, 30)
-    liveevents = events(room, data.window)
+    await window.load(undefined, 30)
+    liveevents = events(room, window)
   }
 
   function scrollback () {
-    return data.window.paginate(Direction.Backward, 30)
+    return window.paginate(Direction.Backward, 30)
   }
 
+  $: statestore = state(room)
+  $: members = Object.entries($statestore.members)
 </script>
 
-<div class='h-full flex flex-col'>
+<div class='size-full flex flex-col'>
   <div class='h-full overflow-y-auto flex flex-col'>
     {#each $msgs as [event, children] (event.getId())}
-      <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} client={data.client} {room} {checkRead} />
+      <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} {client} {room} {checkRead} />
       <div>
         <Button on:click={() => edit(event)}>Edit</Button>
         <Button on:click={() => reply(event)}>Reply</Button>
       </div>
     {/each}
   </div>
-  <div>
+  <div class='flex flex-wrap w-full'>
     Typing:
     {#each typingRoom as [userId] (userId)}
       {@const user = $users.get(userId)}
@@ -206,4 +210,8 @@
     <Button variant='outline' on:click={file}>Attach</Button>
     <Button variant='outline' on:click={location}>Location</Button>
   </div>
+</div>
+<div class='flex flex-col shrink-0 w-50 p-2 border-l border-black/10 dark:border-white/10'>
+  <div class='text-muted-foreground text-[10.5px] my-2 px-1.25'>{members.length} Member{members.length !== 1 ? 's' : ''}</div>
+  <MemberList items={members} users={$users} />
 </div>

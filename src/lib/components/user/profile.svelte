@@ -47,6 +47,7 @@
 
   import { Image } from '$lib/components/image'
   import { mxcToHttp } from '$lib/modules/matrix/attachment/url'
+  import { normalizeName } from '$lib/modules/matrix/user'
   import { getClient } from '$lib/state'
   import { cn } from '$lib/utils'
 
@@ -56,7 +57,7 @@
 
   $: avatar = mxcToHttp(user.avatarUrl)
 
-  $: name = user.displayName || user.userId
+  $: name = normalizeName(user)
 
   let banner: string | undefined
   let timeZone: string | undefined
@@ -98,8 +99,11 @@
       {#if statusMessage || statusEmoji}
         <div class='-left-3 -top-9 absolute text-xs'>
           <div class='px-3 py-1.5 rounded-2xl bg-mix bubbles relative leading-tight'>
+            <span>
+              {statusEmoji ?? ''}
+            </span>
             <span class='text-contrast-filter'>
-              {statusEmoji ?? ''} {statusMessage ?? ''}
+              {statusMessage ?? ''}
             </span>
           </div>
         </div>

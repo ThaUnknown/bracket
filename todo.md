@@ -26,7 +26,7 @@
   * \[ ] Profile management
     * \[ ] Changing display name
     * \[ ] Changing avatar
-    * \[ ] Extra metadata from that one extension spec, such as description, status bubble and background image via attachment upload. ex:
+    * \[x] Extra metadata from that one extension spec, such as description, status bubble and background image via attachment upload. ex:
 
 * \[ ] Notifications
   * \[ ] Managing

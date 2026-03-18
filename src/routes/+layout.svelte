@@ -8,6 +8,7 @@
   import './layout.css'
   import '@fontsource-variable/nunito'
   import '@fontsource/geist-mono'
+  import '@fontsource/roboto'
 
   type WebManifestWithExtras = WebManifest & Record<string, unknown>
 

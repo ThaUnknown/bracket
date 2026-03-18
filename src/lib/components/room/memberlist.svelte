@@ -9,7 +9,7 @@
   export let users: Map<string, User>
 </script>
 
-<SvelteVirtualList {items} itemsClass='gap-2 flex flex-col'>
+<SvelteVirtualList {items} itemsClass='gap-0.5 flex flex-col'>
   {#snippet renderItem([id, member])}
     <RoomMember {member} user={users.get(id)} />
   {/snippet}

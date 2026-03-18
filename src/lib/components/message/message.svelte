@@ -59,7 +59,7 @@
   }
 </script>
 
-<div class='p-1 max-h-60 ring ring-inset ring-black/10 dark:ring-white/15 flex flex-col' use:intersection>
+<div class='p-1 max-h-60 ring ring-inset ring-black/10 dark:ring-white/15 flex flex-col w-full overflow-clip' use:intersection>
   {#if user}
     <User {user} />: {isEdited ? '(edited)' : ''}
   {/if}
@@ -100,9 +100,9 @@
   {:else}
     <Sticker content={event.getContent()} />
   {/if}
-  <div class='flex gap-1 flex-wrap overflow-clip h-10'>
+  <div class='flex gap-1 flex-wrap w-full overflow-clip h-10'>
     {receipts.length} Receipts:
-    {#each receipts as receipt (receipt.userId)}
+    {#each receipts as receipt, i (i)}
       {@const user = users.get(receipt.userId)}
       {#if user}
         <User {user} />: {receipt.type}

@@ -14,6 +14,9 @@ importers:
       '@fontsource/geist-mono':
         specifier: ^5.2.6
         version: 5.2.6
+      '@fontsource/roboto':
+        specifier: ^5.2.10
+        version: 5.2.10
       '@humanspeak/svelte-virtual-list':
         specifier: ^0.4.3
         version: 0.4.3(svelte@5.53.12)
@@ -405,6 +408,9 @@ packages:
 
   '@fontsource/geist-mono@5.2.6':
     resolution: {integrity: sha512-I3hsRP+8Gmhk35cwlPAR4w5xqk7e5pro2F1o51ZmB+lN+dPcwN3jYHKN+u0E5AMuiQKpTdkrqfEpvBjzQax3cQ==}
+
+  '@fontsource/roboto@5.2.10':
+    resolution: {integrity: sha512-8HlA5FtSfz//oFSr2eL7GFXAiE7eIkcGOtx7tjsLKq+as702x9+GU7K95iDeWFapHC4M2hv9RrpXKRTGGBI8Zg==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2927,6 +2933,8 @@ snapshots:
   '@fontsource-variable/nunito@5.2.6': {}
 
   '@fontsource/geist-mono@5.2.6': {}
+
+  '@fontsource/roboto@5.2.10': {}
 
   '@humanfs/core@0.19.1': {}
 

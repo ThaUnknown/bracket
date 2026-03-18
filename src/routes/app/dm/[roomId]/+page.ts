@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit'
 import { Direction, EventType, TimelineWindow } from 'matrix-js-sdk'
 
-const NUM_PRELOAD_MESSAGES = 30
+const NUM_PRELOAD_MESSAGES = 50
 
 async function preload (window: TimelineWindow, initial: string) {
   try {

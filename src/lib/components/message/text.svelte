@@ -23,7 +23,7 @@
 
 {#if !pureURL}
   {#if isMarkdown}
-    <div class='h-full overflow-auto'>
+    <div class='size-full overflow-clip *:wrap-anywhere'>
       <Markdown markdown={body} />
     </div>
   {:else}

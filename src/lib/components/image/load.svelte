@@ -3,7 +3,7 @@
 
   import { cn } from '$lib/utils'
 
-  type $$Props = HTMLImgAttributes & { color?: string | null | undefined }
+  type $$Props = HTMLImgAttributes
 
   export let src: $$Props['src'] = ''
   export let alt: $$Props['alt'] = ''
