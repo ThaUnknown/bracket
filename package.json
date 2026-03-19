@@ -42,6 +42,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@emoji-mart/data": "^1.2.1",
 		"@fontsource-variable/nunito": "^5.2.6",
 		"@fontsource/geist-mono": "^5.2.6",
 		"@fontsource/roboto": "^5.2.10",
@@ -53,6 +54,7 @@
 		"@types/wicg-file-system-access": "^2023.10.7",
 		"abslink": "^1.1.6",
 		"dompurify": "^3.3.1",
+		"emoji-mart": "^5.6.0",
 		"flowbite-svelte": "^1.31.0",
 		"idb-keyval": "^6.2.2",
 		"marked": "^17.0.3",

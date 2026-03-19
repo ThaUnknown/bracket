@@ -3,25 +3,33 @@
 
   import type { PopoverContext } from './types.ts'
 
-  type Side = 'top' | 'bottom' | 'left' | 'right'
-
-  export let side: Side = 'bottom'
+  export let side: 'top' | 'bottom' | 'left' | 'right' = 'bottom'
   export let sideOffset = 6
   export let popover: 'auto' | 'manual' | 'hint' = 'auto'
+  export let span: 'top' | 'bottom' | 'left' | 'right' | 'all' = 'all'
 
   const { open, id } = getContext<PopoverContext>('popover')
 
   function toggle ({ newState }: ToggleEvent) {
     open.set(newState === 'open')
   }
+  function popoverstate (node: HTMLDivElement, _: boolean) {
+    return {
+      update: (popover: boolean) => {
+        if (!popover) node.hidePopover()
+        else node.showPopover()
+      }
+    }
+  }
 </script>
 
 <div
   {id}
   {popover}
+  use:popoverstate={$open}
   role='dialog'
   style:--side-offset='{sideOffset}px'
-  style:--side='{side} span-all'
+  style:--side='{side} span-{span}'
   on:toggle={toggle}
   {...$$restProps}>
   {#if $open}
@@ -34,7 +42,7 @@
     /* reset default styles */
     width: auto;
     border: none;
-    background: transparent;
+    background: unset;
     overflow: visible;
 
     position-area: var(--side);

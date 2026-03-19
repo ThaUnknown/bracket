@@ -3,8 +3,28 @@
   font-weight: 500;
 }
 
-html .overtype-wrapper .overtype-input, html .overtype-wrapper .overtype-preview {
-  font-family: var(--default-font-family) !important;
+html {
+  .overtype-wrapper {
+
+    .overtype-input,
+    .overtype-preview {
+      font-family: var(--default-font-family) !important;
+    }
+
+    .overtype-preview pre.code-block {
+      border-radius: 0 !important;
+
+      code {
+        line-height: 1 !important;
+        font-family: inherit !important;
+        border-radius: 0 !important;
+      }
+    }
+  }
+
+  .overtype-container.overtype-auto-resize .overtype-wrapper {
+    min-height: 0px !important;
+  }
 }
 
 .shiki code {

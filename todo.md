@@ -85,3 +85,5 @@
   * \[ ] Message style picking
   * \[ ] User profile style picking
   * \[ ] Sidebar style picking \[???]
+
+- \[ ] Indicator for where unread messages start

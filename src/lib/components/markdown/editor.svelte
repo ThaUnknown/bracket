@@ -68,12 +68,15 @@
 </script>
 
 <script lang='ts'>
+  import { createEventDispatcher } from 'svelte'
+
   let className: string | undefined | null = ''
   export let value = ''
   export { className as class }
 
-  export let placeholder = ''
-  export let editor: OverTypeInstance | undefined = undefined
+  export let editor: OverTypeInstance | undefined
+
+  const dispatch = createEventDispatcher<{ send: undefined }>()
 
   export function getContent (): EditorContent {
     const regex = /(<span class="code-fence"[^>]*>[\s\S]*?<\/span>)/g
@@ -96,15 +99,39 @@
 
   function markdown (el: HTMLDivElement) {
     [editor] = new OverType(el, {
-      toolbar: true,
-      placeholder,
+      placeholder: 'Type a message...',
       value,
-      autoResize: false,
+      autoResize: true,
+      minHeight: '0',
+      padding: '0px',
+      maxHeight: '300',
+      textareaProps: {
+        rows: 1
+      },
+      spellcheck: true,
+      smartLists: true,
+      toolbar: false,
+      toolbarButtons: [
+        {
+          name: 'custom',
+          icon: '...',
+          action: ({ editor, getValue }) => {
+
+          }
+        }
+      ],
+      onKeydown: (event) => {
+        // TODO: handle mobile
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault()
+          dispatch('send')
+        }
+      },
       theme: {
         name: 'custom',
         colors: {
-          bgPrimary: 'var(--foreground)',
-          bgSecondary: 'var(--background)',
+          bgPrimary: 'transparent',
+          bgSecondary: 'transparent',
           text: 'var(--foreground)',
           textPrimary: 'var(--background)',
           textSecondary: 'var(--foreground)',
@@ -123,10 +150,11 @@
           selection: 'rgba(97, 175, 239, 0.3)',
           listMarker: '#e5c07b',
           toolbarBg: 'var(--background)',
-          toolbarBorder: '#3b4048',
-          toolbarIcon: 'inherit',
-          toolbarHover: 'var(--muted-foreground)',
-          toolbarActive: 'var(--foreground)'
+          toolbarBorder: 'transparent',
+          toolbarIcon: 'var(--muted-foreground)',
+          toolbarHover: 'var(--background)',
+          toolbarActive: 'var(--foreground)',
+          placeholder: 'var(--muted-foreground)'
         }
       },
       onChange: (val: string) => {
@@ -140,6 +168,6 @@
 
 <div use:markdown
   class={cn(
-    'placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-15 w-full overflow-clip border bg-transparent text-sm focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50',
+    'flex w-full overflow-clip font-mono',
     className
   )} />

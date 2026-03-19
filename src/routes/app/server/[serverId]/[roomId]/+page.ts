@@ -24,7 +24,7 @@ export async function load ({ parent, params }) {
 
   if (!room) return error(404, 'Room not found')
 
-  const window = new TimelineWindow(client.matrix, room.getUnfilteredTimelineSet(), { windowLimit: 100 })
+  const window = new TimelineWindow(client.matrix, room.getUnfilteredTimelineSet(), { windowLimit: 300 })
 
   preload(window, room.getAccountData(EventType.FullyRead)?.getContent().event_id)
 

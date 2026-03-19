@@ -1,6 +1,8 @@
 <script lang='ts'>
+  import { page } from '$app/stores'
   import { Button } from '$lib/components/ui/button'
   import { isSpace, spaceChildren } from '$lib/modules/matrix/room'
+  import { cn } from '$lib/utils'
 
   export let data
 
@@ -34,9 +36,10 @@
           {#each spaceChildren(space) as spaceId (spaceId)}
             {@const room = $rooms[spaceId] || $hierarchy.rooms.find(r => r.room_id === spaceId)}
             {@const joined = $rooms[spaceId]}
+            {@const active = $page.params.roomId === spaceId}
             {#if room || !done}
               {#if room}
-                <Button variant='ghost' size='sm' class='px-1.5 w-full justify-start text-ellipsis overflow-clip text-nowrap text-xs h-6 gap-1.5 rounded-[6px]' href='/#/app/server/{server.roomId}/{spaceId}'>
+                <Button variant='ghost' size='sm' class={cn('px-1.5 w-full justify-start text-ellipsis overflow-clip text-nowrap text-xs h-6 gap-1.5 rounded-[6px]', active && 'bg-foreground text-foreground dark:bg-foreground/10')} href='/#/app/server/{server.roomId}/{spaceId}'>
                   {#if joined}
                     <div>#</div>
                   {:else}
@@ -60,9 +63,10 @@
         {#each rootRooms as roomId (roomId)}
           {@const room = $rooms[roomId] || $hierarchy.rooms.find(r => r.room_id === roomId)}
           {@const joined = $rooms[roomId]}
+          {@const active = $page.params.roomId === roomId}
           {#if room || !done}
             {#if room}
-              <Button variant='ghost' size='sm' class='px-1.5 w-full justify-start text-ellipsis overflow-clip text-nowrap text-xs h-6 gap-1.5 rounded-[6px]' href='/#/app/server/{server.roomId}/{roomId}'>
+              <Button variant='ghost' size='sm' class={cn('px-1.5 w-full justify-start text-ellipsis overflow-clip text-nowrap text-xs h-6 gap-1.5 rounded-[6px]', active && 'bg-foreground text-foreground dark:bg-foreground/10')} href='/#/app/server/{server.roomId}/{roomId}'>
                 {#if joined}
                   <div>#</div>
                 {:else}

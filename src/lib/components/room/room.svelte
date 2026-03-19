@@ -1,13 +1,13 @@
 <script lang='ts'>
-  import { LocationAssetType, type MatrixEvent, type IContent, type User as MatrixUser, type ReceiptCache, Direction, type TimelineWindow, type Room } from 'matrix-js-sdk'
-  import { makeHtmlMessage, makeTextMessage, makeLocationContent } from 'matrix-js-sdk/lib/content-helpers'
+  import { type MatrixEvent, type IContent, type User as MatrixUser, type ReceiptCache, type TimelineWindow, type Room, Direction } from 'matrix-js-sdk'
+  import { makeHtmlMessage, makeTextMessage } from 'matrix-js-sdk/lib/content-helpers'
 
-  import type { EditorContent } from '$lib/components/markdown/editor.svelte'
+  import type { EditorContent } from '$lib/components/markdown'
   import type { ClientInstance } from '$lib/modules/matrix/client'
   import type { TypedMatrixEvent } from '$lib/modules/matrix/event'
   import type { RoomMessageEventContent } from 'matrix-js-sdk/lib/types'
 
-  import { Editor } from '$lib/components/markdown'
+  import { ChatInput } from '$lib/components/chatinput'
   import { Message } from '$lib/components/message'
   import { MemberList } from '$lib/components/room'
   import Button from '$lib/components/ui/button/button.svelte'
@@ -38,8 +38,6 @@
 
   $: users = client.users
 
-  $: canJumpToLive = $liveevents && window.canPaginate(Direction.Forward)
-
   $: active = $activityState === 'active'
   $: idle = $idleState === 'idle'
   $: visible = $visibilityState === 'visible'
@@ -50,11 +48,11 @@
   $: myReceipt = $receipts && room.getEventReadUpTo(client.matrix.getSafeUserId())
   $: myReceiptIndex = $liveevents.findLastIndex(e => e.getId() === myReceipt)
 
-  function readall () {
-    const last = $msgs.at(-1)?.[0]
-    if (!last) return
-    read(last)
-  }
+  // function readall () {
+  //   const last = $msgs.at(-1)?.[0]
+  //   if (!last) return
+  //   read(last)
+  // }
 
   function read (event: MatrixEvent) {
     client.matrix.setRoomReadMarkers(room.roomId, event.getId()!, event)
@@ -120,13 +118,13 @@
     await client.matrix.sendMessage(room.roomId, event)
   }
 
-  async function location () {
-    // TODO: live location
-    const location = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject))
-    const event = makeLocationContent(undefined, `geo:${location.coords.latitude},${location.coords.longitude}`, Date.now(), undefined, LocationAssetType.Pin) as RoomMessageEventContent
+  // async function location () {
+  //   // TODO: live location
+  //   const location = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject))
+  //   const event = makeLocationContent(undefined, `geo:${location.coords.latitude},${location.coords.longitude}`, Date.now(), undefined, LocationAssetType.Pin) as RoomMessageEventContent
 
-    await client.message(room.roomId, event)
-  }
+  //   await client.message(room.roomId, event)
+  // }
 
   async function file () {
     // TODO: this needs to be some sort of abortable modal
@@ -160,21 +158,27 @@
   $: typingRooms = typing(client.matrix)
   $: typingRoom = $typingRooms.get(room.roomId)
 
-  async function present () {
-    await window.load(undefined, 30)
-    liveevents = events(room, window)
-  }
-
-  function scrollback () {
-    return window.paginate(Direction.Backward, 30)
-  }
+  // async function present () {
+  //   await window.load(undefined, 30)
+  //   liveevents = events(room, window)
+  // }
 
   $: statestore = state(room)
   $: members = Object.entries($statestore.members)
+
+  $: canPaginateForward = $liveevents && window.canPaginate(Direction.Forward)
+  $: canPaginateBackward = $liveevents && window.canPaginate(Direction.Backward)
+
+  async function paginate ({ skipped }: ContentVisibilityAutoStateChangeEvent, dir: Direction) {
+    if (!skipped) await window.paginate(dir, 30)
+  }
 </script>
 
-<div class='size-full flex flex-col'>
+<div class='size-full flex flex-col border-t'>
   <div class='h-full overflow-y-auto flex flex-col'>
+    {#if canPaginateBackward}
+      <div class='[content-visibility:auto]' on:contentvisibilityautostatechange={e => paginate(e, Direction.Backward)} />
+    {/if}
     {#each $msgs as [event, children] (event.getId())}
       <Message {event} users={$users} reactions={reactions(liveevents, event.getId(), room.getUnfilteredTimelineSet())} receipts={concatreceipts(event, children, $receipts)} {client} {room} {checkRead} />
       <div>
@@ -182,6 +186,9 @@
         <Button on:click={() => reply(event)}>Reply</Button>
       </div>
     {/each}
+    {#if canPaginateForward}
+      <div class='[content-visibility:auto]' on:contentvisibilityautostatechange={e => paginate(e, Direction.Forward)} />
+    {/if}
   </div>
   <div class='flex flex-wrap w-full'>
     Typing:
@@ -201,15 +208,7 @@
       Replying
     {/if}
   </div>
-  <Editor class='h-52' bind:getContent bind:setValue bind:value />
-  <div class='flex'>
-    <Button on:click={scrollback}>Load More</Button>
-    <Button on:click={message}>Send</Button>
-    <Button on:click={readall}>Mark as Read</Button>
-    <Button on:click={present} disabled={!canJumpToLive}>Jump to Present</Button>
-    <Button variant='outline' on:click={file}>Attach</Button>
-    <Button variant='outline' on:click={location}>Location</Button>
-  </div>
+  <ChatInput bind:getContent bind:setValue bind:value on:send={message} on:attach={file} />
 </div>
 <div class='flex flex-col shrink-0 w-50 p-2 border-l border-black/10 dark:border-white/10'>
   <div class='text-muted-foreground text-[10.5px] my-2 px-1.25'>{members.length} Member{members.length !== 1 ? 's' : ''}</div>

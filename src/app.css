@@ -7,7 +7,8 @@
   scroll-behavior: smooth;
   overscroll-behavior: none;
   user-select: none;
-  --default-font-family: 'Nunito Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  --default-font-family: 'Nunito Variable', 'EmojiMart', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace;
   --radius: 0.625rem;
   --background: oklch(0.9911 0 0);
   --foreground: oklch(0.1994 0.0470 270.6494);
@@ -230,6 +231,7 @@
   }
 
   @media (prefers-reduced-motion) {
+
     ::view-transition-group(*),
     ::view-transition-old(*),
     ::view-transition-new(*) {
@@ -238,12 +240,28 @@
   }
 
   @font-face {
-    font-family: "Twemoji";
+    font-family: "EmojiMart";
     src: url("/twemoji.woff2") format("woff2");
+    font-display: swap;
+    unicode-range:
+      U+00A9, U+00AE,
+      U+203C, U+2049, U+2122, U+2139,
+      U+2194-21AA,
+      U+231A-231B, U+2328, U+23CF, U+23E9-23FA,
+      U+24C2,
+      U+25AA-25AB, U+25B6, U+25C0, U+25FB-25FE,
+      U+2600-27BF,
+      U+2934-2935,
+      U+2B05-2B55,
+      U+3030, U+303D,
+      U+3297, U+3299,
+      U+1F000-1FFFF,
+      U+200D, U+20E3, U+FE0F,
+      U+E0020-E007F;
   }
 
   .font-twemoji {
-    font-family: 'Twemoji';
+    font-family: 'EmojiMart';
   }
 
   .text-contrast-filter {

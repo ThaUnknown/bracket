@@ -5,7 +5,7 @@
 
   import { page } from '$app/state'
 
-  import './layout.css'
+  import '../app.css'
   import '@fontsource-variable/nunito'
   import '@fontsource/geist-mono'
   import '@fontsource/roboto'

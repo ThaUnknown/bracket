@@ -198,8 +198,8 @@ export function getLatestEditableEvt (messages: Array<TypedMatrixEvent<EventType
 export function encryption (room: Room) {
   return readable(room.hasEncryptionStateEvent(), set => {
     const update = () => set(room.hasEncryptionStateEvent())
-    room.addListener(RoomStateEvent.Update, update)
-    return () => room.removeListener(RoomStateEvent.Update, update)
+    room.on(RoomStateEvent.Update, update)
+    return () => room.off(RoomStateEvent.Update, update)
   })
 }
 

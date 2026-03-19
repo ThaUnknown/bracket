@@ -20,7 +20,7 @@
       {member.rawDisplayName}
     </div>
   </Popover.Trigger>
-  <Popover.Content class='select-none! w-full'>
+  <Popover.Content class='w-full'>
     <div class='animate-spin inline-block size-6 border-3 border-primary border-t-transparent rounded-[999px] text-primary' role='status' aria-label='loading'>
       <span class='sr-only'>Loading...</span>
     </div>

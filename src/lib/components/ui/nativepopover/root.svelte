@@ -4,14 +4,10 @@
 
   import type { PopoverContext } from './types.ts'
 
-  export let open = false
-
-  const _open = writable(false)
-
-  $: open = $_open
+  export let open = writable(false)
 
   setContext<PopoverContext>('popover', {
-    open: _open,
+    open,
     id: crypto.randomUUID()
   })
 </script>
